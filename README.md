@@ -10,3 +10,5 @@
   * *linux, mac:* `source venv/bin/activate`
 
 * Скачайте необходимые пакеты командой `pip install -r requirements.txt`
+
+* Запустить бота командой `python main.py`
