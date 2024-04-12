@@ -5,16 +5,22 @@ from dotenv import load_dotenv
 import json
 
 
-load_dotenv()
-
-
 async def post_request(url, headers, data):
     async with aiohttp.ClientSession() as session:
         async with session.post(url, headers=headers, json=data) as response:
             return await response.text()
 
 
-async def main():
+async def insert_data_into_questions(data):
+    num_questions = len(data)
+    result = ""
+    for i in range(1, num_questions + 1):
+        result += f"{i}) {data[i]} "
+    return result.strip()
+
+
+async def yandexGPT(data):
+    load_dotenv()
     CATALOG_ID = os.getenv('CATALOG_ID')
     SECRET_KEY = os.getenv('SECRET_KEY')
 
@@ -59,9 +65,7 @@ async def main():
             },
             {
                 "role": "user",
-                "text": "1) Алексей 2) 65 3) Россия, Москва 4)Он был сварщиком 5) Он любил читать книги и рисовать"
-                        "6) Да, он был религиозным человеком 7) Особенным его хобби было рисовать утренний рассвет"
-                        "8) Нет 9) Да 10) Он был добрым, но строгим 11) нет."
+                "text": insert_data_into_questions(data)
             },
         ]
     }
@@ -86,5 +90,5 @@ async def main():
                     text = alt['message']['text']
                     print(text)
 
-if __name__ == "__main__":
-    asyncio.run(main())
+# if __name__ == "__main__":
+#     asyncio.run(yandexGPT())
