@@ -20,6 +20,7 @@ skip_question = [
 ]
 skip_question = InlineKeyboardMarkup(inline_keyboard=skip_question)
 
+# клавиатура для выбора ответов
 choise_answer = [
     [
         InlineKeyboardButton(text="1", callback_data="1"),
@@ -28,3 +29,19 @@ choise_answer = [
     ]
 ]
 choise_answer = InlineKeyboardMarkup(inline_keyboard=choise_answer)
+
+
+
+def country_kb(name_ids:dict):
+    builder = InlineKeyboardBuilder()
+
+    for id, name in name_ids.items():
+        builder.button(
+            text=name,
+            callback_data=NameCallback(
+                tag="page_choose",
+                id=str(id)
+            )
+        )
+    builder.adjust(1, repeat=True)
+    return builder.as_markup()
