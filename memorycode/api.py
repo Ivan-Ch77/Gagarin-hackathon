@@ -53,11 +53,32 @@ async def update_memory_page(initial_page_file: str, updated_fields_file: str, a
     # with open(updated_fields_file, 'r') as file:
     #     updated_fields_data = json.load(file)
     # Загрузка данных из JSON строк
+
     initial_page_data = json.loads(initial_page_file)
     updated_fields_data = json.loads(updated_fields_file)
 
+    url = f"{MEMORYCODE_BASE_URL}/api/cabinet/individual-pages"
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json;charset=UTF-8",
+        "Authorization": f"Bearer {access_token}"
+    }
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, headers=headers) as response:
+            if response.status != 200:
+                logger.error(f"Ошибка при получении списка страниц: {await response.text()}")
+                return None
+            data = await response.json()
+            page_exists = any(page.get('id') == initial_page_data['id'] for page in data if isinstance(page, dict))
+            if not page_exists:
+                logger.error(f"Страница с ID {initial_page_data['id']} не найдена.")
+                return None
+
     # Обновление изначальных данных согласно второму файлу
     initial_page_data.update(updated_fields_data)
+    print(initial_page_data)
+    print(json.dumps(initial_page_data))
     url = f"{MEMORYCODE_BASE_URL}/api/page/{initial_page_data['id']}"
     headers = {
         "Accept": "application/json",
@@ -65,7 +86,7 @@ async def update_memory_page(initial_page_file: str, updated_fields_file: str, a
         "Authorization": f"Bearer {access_token}"
     }
     async with aiohttp.ClientSession() as session:
-        async with session.put(url, json=initial_page_data, headers=headers) as response:
+        async with session.put(url, json=json.dumps(initial_page_data), headers=headers) as response:
             if response.status == 200:
                 logger.info("Страница памяти успешно обновлена!")
             else:
