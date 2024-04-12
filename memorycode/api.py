@@ -128,7 +128,7 @@ async def main():
     access_token = await get_access_token(MEMORYCODE_EMAIL, MEMORYCODE_PASSWORD)
     if access_token:
         pages_info = await get_all_memory_pages(access_token)
-        print(pages_info)
+        logger.info("Все карточки:", pages_info)
         person_name = "Иванов Иван Иванович"
         page_info = await get_individual_page_by_name(access_token, person_name)
         logger.info(page_info)
