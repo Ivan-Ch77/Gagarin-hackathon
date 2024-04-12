@@ -20,10 +20,11 @@ skip_question = [
 ]
 skip_question = InlineKeyboardMarkup(inline_keyboard=skip_question)
 
-check_kb = [
+choise_answer = [
     [
-        InlineKeyboardButton(text="Да", callback_data="Yes"),
-        InlineKeyboardButton(text="Нет", callback_data="No")
+        InlineKeyboardButton(text="1", callback_data="1"),
+        InlineKeyboardButton(text="2", callback_data="2"),
+        InlineKeyboardButton(text="3", callback_data="3")
     ]
 ]
-check_kb = InlineKeyboardMarkup(inline_keyboard=check_kb)
+choise_answer = InlineKeyboardMarkup(inline_keyboard=choise_answer)
