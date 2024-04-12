@@ -9,8 +9,8 @@ async def post_request(url, headers, data):
 
 
 async def main():
-    catalogID = "b1gnm8ek6qvl7tnkh3tn"
-    secret_key = "AQVN02Y3W4I5HDxd7lFmmSLXhU4vv9Vh5baeRqpn"
+    catalogID = ""
+    secret_key = ""
 
     prompt = {
         "modelUri": f"gpt://{catalogID}/yandexgpt-lite",
