@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+test.py
 
 # C extensions
 *.so
@@ -112,6 +113,7 @@ ipython_config.py
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
 __pypackages__/
 
+
 # Celery stuff
 celerybeat-schedule
 celerybeat.pid
@@ -152,6 +154,7 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
@@ -160,3 +163,4 @@ cython_debug/
 #.idea/
 
 drive-download-20240412T114453Z-001
+

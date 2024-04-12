@@ -1,21 +1,31 @@
+
+import os
+import asyncio
 import logging
-from aiogram import Bot, Dispatcher, executor
-from bot.config import API_KEY_TG
-from bot.handlers import register_handlers
+from dotenv import load_dotenv
+from aiogram import Bot, Dispatcher
+from aiogram.enums.parse_mode import ParseMode
+from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.client.bot import DefaultBotProperties
+from bot.handlers import router
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+load_dotenv()
+API_KEY = os.getenv('API_KEY_TG')
+debug=True
 
-bot = Bot(token=API_KEY_TG)
-dp = Dispatcher(bot)
+async def main():
+    bot = Bot(API_KEY, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    dp = Dispatcher(storage=MemoryStorage())
+    dp.include_router(router)
 
-register_handlers(dp)
+    await bot.delete_webhook(drop_pending_updates=True)
+    await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
 
-async def on_startup(dispatcher):
-    logger.info("Бот запущен!")
 
-async def on_shutdown(dispatcher):
-    logger.info("Бот останавливается...")
+if __name__ == "__main__":
+    try:
+        logging.basicConfig(level=logging.INFO)
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logging.error('KeyboardInterrupt')
 
-if __name__ == '__main__':
-    executor.start_polling(dp, skip_updates=True, on_startup=on_startup, on_shutdown=on_shutdown)
