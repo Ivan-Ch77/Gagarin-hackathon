@@ -65,7 +65,7 @@ async def yandexGPT(data):
             },
             {
                 "role": "user",
-                "text": insert_data_into_questions(data)
+                "text": await insert_data_into_questions(data)
             },
         ]
     }
