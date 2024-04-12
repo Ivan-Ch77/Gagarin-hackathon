@@ -24,22 +24,24 @@ async def get_access_token(email, password, device='bot-v0.0.1'):
             return data  # Возвращает словарь с ошибкой
 
 async def update_memory_page(initial_page_file, updated_fields_file, access_token):
-    # Загрузка данных из файлов JSON
-    with open(initial_page_file, 'r') as file:
-        initial_page_data = json.load(file)
-    with open(updated_fields_file, 'r') as file:
-        updated_fields_data = json.load(file)
+    # # Загрузка данных из файлов JSON
+    # with open(initial_page_file, 'r') as file:
+    #     initial_page_data = json.load(file)
+    # with open(updated_fields_file, 'r') as file:
+    #     updated_fields_data = json.load(file)
+    # Загрузка данных из JSON строк
+    initial_page_data = json.loads(initial_page_file)
+    updated_fields_data = json.loads(updated_fields_file)
 
     # Обновление изначальных данных согласно второму файлу
     initial_page_data.update(updated_fields_data)
-
-    url = f"{MEMORYCODE_BASE_URL}/page/{initial_page_data['id']}"
+    url = f"{MEMORYCODE_BASE_URL}/api/page/{initial_page_data['id']}"
     headers = {
         "Accept": "application/json",
         "Content-Type": "application/json;charset=UTF-8",
         "Authorization": f"Bearer {access_token}"
     }
-
+    print(initial_page_data)
     async with aiohttp.ClientSession() as session:
         async with session.put(url, json=initial_page_data, headers=headers) as response:
             if response.status == 200:
@@ -131,6 +133,11 @@ async def main():
         logger.info("Все карточки:", pages_info)
         person_name = "Иванов Иван Иванович"
         page_info = await get_individual_page_by_name(access_token, person_name)
+        initial_page_file = page_info
+        updated_fields_file = {'epitaph': "Чел хорош"}
+        updated_fields_file = json.dumps(updated_fields_file)
+        updated_page = await update_memory_page(initial_page_file, updated_fields_file, access_token)
+        print(updated_page)
         page_info = json.loads(page_info)
         if page_info:
             logger.info("Информация о человеке:")
