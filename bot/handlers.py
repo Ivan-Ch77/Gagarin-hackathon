@@ -17,6 +17,8 @@ from bot.callback import *
 import bot.kb as kb
 from bot.text import Text
 
+from yandex.main import yandexGPT
+
 
 router = Router()
 text = Text()
@@ -174,9 +176,14 @@ async def biography_intro_11(msg: Message, state: FSMContext):
     await state.update_data(biography_intro_11=message)
     data = await state.get_data()
     del data['msgID'], data['chatID']
-    answer__list = [value for value in data.values()]
+    user_answer = [value for value in data.values()]
+    print(user_answer)
+    ya_answer = await yandexGPT(user_answer)
+    print(ya_answer)
+    await state.update_data(ya_answer=ya_answer)
+    ya_answer = '\n'.join(ya_answer)
     await msg.answer(
-        text=f'{data}'+ "\nВыберите какой вариант вам больше понравился:",
+        text=ya_answer+ "\nВыберите какой вариант вам больше понравился:",
         reply_markup=kb.choise_answer
     )
     await state.set_state(Support.biography_intro_choice)
