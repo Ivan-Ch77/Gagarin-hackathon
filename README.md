@@ -12,3 +12,5 @@
 * Скачайте необходимые пакеты командой `pip install -r requirements.txt`
 
 * Запустить бота командой `python main.py`
+
+* Запустить бота командой `python main.py`

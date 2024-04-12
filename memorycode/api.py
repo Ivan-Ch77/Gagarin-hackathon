@@ -71,14 +71,14 @@ async def update_memory_page(initial_page_file: str, updated_fields_file: str, a
                 return None
             data = await response.json()
             page_exists = any(page.get('id') == initial_page_data['id'] for page in data if isinstance(page, dict))
+
             if not page_exists:
                 logger.error(f"Страница с ID {initial_page_data['id']} не найдена.")
                 return None
-
+    logger.error(f"Страница с ID {initial_page_data['id']} найдена.")
     # Обновление изначальных данных согласно второму файлу
     initial_page_data.update(updated_fields_data)
     print(initial_page_data)
-    print(json.dumps(initial_page_data))
     url = f"{MEMORYCODE_BASE_URL}/api/page/{initial_page_data['id']}"
     headers = {
         "Accept": "application/json",
@@ -86,13 +86,23 @@ async def update_memory_page(initial_page_file: str, updated_fields_file: str, a
         "Authorization": f"Bearer {access_token}"
     }
     async with aiohttp.ClientSession() as session:
-        async with session.put(url, json=json.dumps(initial_page_data), headers=headers) as response:
+        async with session.put(url, json=initial_page_data, headers=headers) as response:
             if response.status == 200:
                 logger.info("Страница памяти успешно обновлена!")
             else:
                 logger.error("Произошла ошибка при обновлении страницы памяти.")
                 logger.error(f"Код ошибки: {response.status}")
-                logger.error(f"Текст ошибки: {await response.text()}")
+                response_text = await response.text()
+                response_data = json.loads(response_text)
+                # Вывод основного сообщения об ошибке
+                logger.error(f"Основное сообщение об ошибке: {response_data['message']}")
+
+                # Перебор всех ошибок и их вывод
+                if 'errors' in response_data:
+                    logger.error("Детали ошибок:")
+                    for field, messages in response_data['errors'].items():
+                        for message in messages:
+                            logger.error(f" - {field}: {message}")
 
 
 async def search_pages(access_token: str, query_params: dict) -> dict:
@@ -216,7 +226,7 @@ async def main():
     if access_token:
         pages_info = await get_all_memory_pages(access_token)
         logger.info("Все карточки:", pages_info)
-        person_name = "Иванов Иван Иванович"
+        person_name = "Команда Хакатон 10/2"
         page_info = await get_individual_page_by_name(access_token, person_name)
         initial_page_file = page_info
         updated_fields_file = {'epitaph': "Чел хорош"}
