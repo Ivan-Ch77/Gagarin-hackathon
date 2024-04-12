@@ -173,6 +173,8 @@ async def biography_intro_11(msg: Message, state: FSMContext):
     message = msg.text
     await state.update_data(biography_intro_11=message)
     data = await state.get_data()
+    del data['msgID'], data['chatID']
+    answer__list = [value for value in data.values()]
     await msg.answer(
         text=f'{data}'+ "\nВыберите какой вариант вам больше понравился:",
         reply_markup=kb.choise_answer
