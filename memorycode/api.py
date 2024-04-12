@@ -87,7 +87,7 @@ async def get_individual_page_by_name(access_token, name):
                 # Ищем страницу по имени
                 for page in data:
                     if isinstance(page, dict) and page.get('name') == name:
-                        return page
+                        return json.dumps(page)
 
                 # Если страница не найдена
                 logger.warning("Страница памяти не найдена.")
@@ -131,7 +131,7 @@ async def main():
         logger.info("Все карточки:", pages_info)
         person_name = "Иванов Иван Иванович"
         page_info = await get_individual_page_by_name(access_token, person_name)
-        logger.info(page_info)
+        page_info = json.loads(page_info)
         if page_info:
             logger.info("Информация о человеке:")
             logger.info("Имя:", page_info.get('name'))
