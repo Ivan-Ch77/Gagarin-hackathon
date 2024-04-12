@@ -14,8 +14,9 @@ async def post_request(url, headers, data):
 async def insert_data_into_questions(data):
     num_questions = len(data)
     result = ""
-    for i in range(1, num_questions + 1):
-        result += f"{i}) {data[i]} "
+    for i in range(0, num_questions):
+        result += f"{i+1}) {data[i]} "
+        
     return result.strip()
 
 
@@ -65,7 +66,7 @@ async def yandexGPT(data):
             },
             {
                 "role": "user",
-                "text": insert_data_into_questions(data)
+                "text": await insert_data_into_questions(data)
             },
         ]
     }
@@ -81,14 +82,15 @@ async def yandexGPT(data):
 
     result = await post_request(url, headers, prompt)
     lines = result.strip().split('\n')
-
+    epigraphies = []
     for line in lines:
         json_obj = json.loads(line)
         if 'result' in json_obj and 'alternatives' in json_obj['result']:
             for alt in json_obj['result']['alternatives']:
-                if 'message' in alt and 'text' in alt['message'] and alt['status']=='ALTERNATIVE_STATUS_FINAL':
+                if 'message' in alt and 'text' in alt['message'] and alt['status'] == 'ALTERNATIVE_STATUS_FINAL':
                     text = alt['message']['text']
-                    print(text)
+                    epigraphies.append(text)
+    return epigraphies
 
 # if __name__ == "__main__":
 #     asyncio.run(yandexGPT())
