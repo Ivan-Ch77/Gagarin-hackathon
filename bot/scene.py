@@ -34,8 +34,10 @@ from yandex.main import yandexGPT
 
 text = Text()
 
-#Сцена 1 - для обработки простых вопросов
-class UpdateScene(Scene, state="update"):
+
+
+#Сцена 1 - для обработки эпитафий
+class EpitaphUpdateScene(Scene, state="update"):
 
     #Обработчик для редактирования пользователей
     # @on.callback_query.enter(NameCallback.filter())
@@ -216,8 +218,11 @@ class UpdateScene(Scene, state="update"):
         await state.set_data({})
 
 update_router = Router(name=__name__)
-update_router.callback_query.register(UpdateScene.as_handler(), NameCallback.filter(F.tag == "page_choose"))
-update_router.message.register(UpdateScene.as_handler(), Command("test"))
+update_router.callback_query.register(
+    EpitaphUpdateScene.as_handler(), 
+    NameCallback.filter(F.tag == "page_choose")
+)
+
 
 
 

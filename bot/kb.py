@@ -23,6 +23,15 @@ menu = [
 ]
 menu = InlineKeyboardMarkup(inline_keyboard=menu)
 
+# выбор редактируемых данных
+edit_data = [
+    [ 
+        InlineKeyboardButton(text="Эпитафия", callback_data="epitaph"),
+        InlineKeyboardButton(text="Биография", callback_data="biography"),
+    ]
+]
+edit_data = InlineKeyboardMarkup(inline_keyboard=edit_data)
+
 # клавиатура обязательных вопросов
 necessary_q = [
     [
@@ -54,7 +63,7 @@ choise_answer = InlineKeyboardMarkup(inline_keyboard=choise_answer)
 
 
 
-def page_kb(name_ids:dict):
+def page_kb(edit_data:str, name_ids:dict):
     builder = InlineKeyboardBuilder()
 
     for id, name in name_ids.items():
@@ -64,6 +73,7 @@ def page_kb(name_ids:dict):
             text=name,
             callback_data=NameCallback(
                 tag="page_choose",
+                edit_data=str(edit_data),
                 id=str(id)
             )
         )

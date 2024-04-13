@@ -11,7 +11,7 @@ from aiogram.fsm.scene import Scene, SceneRegistry
 
 from bot.handlers import router
 from bot.scene import (
-    UpdateScene, 
+    EpitaphUpdateScene, 
     AboutScene,
     update_router, 
     about_router
@@ -35,7 +35,7 @@ def create_dispatcher():
 
     scene_registry = SceneRegistry(dispatcher)
 
-    scene_registry.add(UpdateScene)
+    scene_registry.add(EpitaphUpdateScene)
     scene_registry.add(AboutScene)
 
 
