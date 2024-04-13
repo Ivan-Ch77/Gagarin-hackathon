@@ -12,6 +12,7 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.methods import delete_message, edit_message_text
 from aiogram import Bot
+from aiogram.fsm.scene import Scene, SceneRegistry, ScenesManager
 
 from bot.state import *
 from bot.callback import *
@@ -32,19 +33,28 @@ text = Text()
 
 #Обработчик команды старт
 @router.message(Command("start"))
-async def start_command(msg: Message):
+async def start_command(msg: Message, scenes: ScenesManager):
+    await scenes.close()
     # if msg.from_user.id not in bd: - проверка наличия юзера в бд
     #     await msg.answer(text.new_start)
     await msg.answer(text.start, reply_markup=kb.menu)
 
-#Обработчик кнопки "Редактировать карточку"
 @router.callback_query(F.data == "edit_card")
+async def edit_card(clbck: CallbackQuery):
+    await clbck.message.answer(
+        text="Выберите данные для обновления",
+        reply_markup=kb.edit_data
+    )
+
+
+#Обработчик кнопки "Редактировать карточку"
+@router.callback_query(F.data == "epitaph")
+@router.callback_query(F.data == "biography")
 async def edit_card(clbck: CallbackQuery):
     try:
         api = mc(MEMORYCODE_EMAIL, MEMORYCODE_PASSWORD, MEMORYCODE_BASE_URL)
-#     # Аутентификация и получение токена доступа
+        # Аутентификация и получение токена доступа
         access_token = await api.authenticate()
-        
         if access_token:
             pages_info = await api.get_all_memory_pages()
             text_ = text.edit
@@ -55,7 +65,11 @@ async def edit_card(clbck: CallbackQuery):
                 name_ids[id]=name
             await clbck.message.edit_text(
                 text=text_,
-                reply_markup=kb.page_kb(name_ids)
+                reply_markup=kb.page_kb(
+                    edit_data=clbck.data,
+                    name_ids=name_ids
+                )
+                
             )
         else:
             await clbck.answer(
@@ -63,6 +77,23 @@ async def edit_card(clbck: CallbackQuery):
             )
     except Exception as e:
         logging.warning(f'Error in start:\n{e}')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # @router.message(UpdateInfo.epitaph_11)
 # async def epitaph_11(msg: Message, state: FSMContext):

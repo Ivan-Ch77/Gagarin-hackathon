@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+from datetime import datetime, timedelta
 from os import getenv
 from typing import Any
 
@@ -33,8 +34,10 @@ from yandex.main import yandexGPT
 
 text = Text()
 
-#Сцена 1 - для обработки простых вопросов
-class UpdateScene(Scene, state="update"):
+
+
+#Сцена 1 - для обработки эпитафий
+class EpitaphUpdateScene(Scene, state="update"):
 
     #Обработчик для редактирования пользователей
     # @on.callback_query.enter(NameCallback.filter())
@@ -75,6 +78,7 @@ class UpdateScene(Scene, state="update"):
             question = QUESTIONS[step]
         except IndexError:
             data = await state.get_data()
+            print(data)
             answers = data['answers']
             user_answers = [value for value in answers.values()]
             ya_answer = await yandexGPT(user_answers)
@@ -88,6 +92,7 @@ class UpdateScene(Scene, state="update"):
 
         # Пропуск вопросов на которые уже есть ответы
         await state.update_data(step=step)
+        
         data = await state.get_data()
         page = data['select_page']
         if question.answer:
@@ -103,22 +108,34 @@ class UpdateScene(Scene, state="update"):
                     tmp_availiable = False
                     break
             # пришлось хардкодить хз как автоматизировать
-            # if tmp_availiable:
-            #     if "birthday_at" in key and "died_at" in key:
-            #         birth_i = key.index("birthday_at")
-            #         death_i = key.index("died_at")
-                    
+            if tmp_availiable:
+                if "birthday_at" in key and "died_at" in key:
+                    birth_i = key.index("birthday_at")
+                    death_i = key.index("died_at")
+                    birthday = datetime.strptime(page[key[birth_i]], "%Y-%m-%d %H:%M:%S")
+                    deathday = datetime.strptime(page[key[death_i]], "%Y-%m-%d %H:%M:%S")
+                    year_life = (deathday - birthday).days // 365
+                    question.answer.text = str(year_life)
                 
         elif type(key) == str:
-            if not page[key]:
+            
+            if page[key]:
+                question.answer.text = page[key]
+            else:
                 tmp_availiable = False
 
         if tmp_availiable:
+            text_ = question.text            
             answers = data.get("answers", {})
-            answers[step] = msg.text
-            await state.update_data()
-            await self.wizard.retake(step=step + 1)
+            answers[step] = question.answer.text
+            await state.update_data(answers=answers, allow_msg=False)
+            
+            return await msg.answer(
+                text = 'На вопрос "' + text_ + f'" уже есть ответ:\n<b>{question.answer.text}</b>\nОставить его?',
+                reply_markup=kb.check_kb,
+            )
         else:
+            await state.update_data(allow_msg=True)
             text_ = question.text
             return await msg.answer(
                 text = text_,
@@ -136,23 +153,28 @@ class UpdateScene(Scene, state="update"):
         #         reply_markup=kb.unnecessary_q,
         #     )
 
+
+
     @on.message(F.text)
     async def answer(self, msg: Message, state: FSMContext) -> None:
         data = await state.get_data()
-        step = data["step"]
-        answers = data.get("answers", {})
-        answers[step] = msg.text
-        
-        await state.update_data(answers=answers)
-        await self.wizard.retake(step=step + 1)
+        allow_msg = data['allow_msg']
+        if allow_msg:
+            step = data["step"]
+            answers = data.get("answers", {})
+            answers[step] = msg.text
+            print(data)
+            await state.update_data(answers=answers)
+            await self.wizard.retake(step=step + 1)
 
     @on.callback_query(F.data == "skip")
     async def answer(self, msg: Message, state: FSMContext) -> None:
         data = await state.get_data()
         step = data["step"]
-        
-        await self.wizard.retake(step=step + 1)
+        next_step = step + 1
 
+        await self.wizard.retake(step=next_step)
+    
     @on.callback_query(F.data == "back")
     async def back(self, clbck: CallbackQuery, state: FSMContext) -> None:
         data = await state.get_data()
@@ -162,7 +184,21 @@ class UpdateScene(Scene, state="update"):
             clbck.message.answer(text="Отмена заполнения")
             return await self.wizard.exit()
         return await self.wizard.back(step=previous_step)
+    
+    # Выбор существующего ответа
+    @on.callback_query(F.data == "yes")
+    async def stay_answer(self, clbck: CallbackQuery, state: FSMContext) -> None:
+        data = await state.get_data()
+        step = data['step']
+        await self.wizard.retake(step=step + 1)
 
+    @on.callback_query(F.data == "no")
+    async def edit_answer(self, clbck: CallbackQuery, state: FSMContext) -> None:
+        await state.update_data(allow_msg=True)
+        data = await state.get_data()
+        step = data['step']
+        await clbck.message.answer(text="Напишите желаемый ответ")
+    
     #Обработка кнопки отменить
     @on.callback_query(F.data == "cancel")
     async def cancel(self, clbck: CallbackQuery, state: FSMContext) -> None:
@@ -190,8 +226,11 @@ class UpdateScene(Scene, state="update"):
         await state.set_data({})
 
 update_router = Router(name=__name__)
-update_router.callback_query.register(UpdateScene.as_handler(), NameCallback.filter(F.tag == "page_choose"))
-update_router.message.register(UpdateScene.as_handler(), Command("test"))
+update_router.callback_query.register(
+    EpitaphUpdateScene.as_handler(), 
+    NameCallback.filter(F.tag == "page_choose" and F.edit_data == "epitaph")
+)
+
 
 
 
