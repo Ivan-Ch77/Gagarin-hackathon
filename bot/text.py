@@ -4,10 +4,22 @@ class Text():
     def __init__(self) -> None:
         ...
     
+    @property
+    def new_start(self):
+        text = 'Здравствуйте!\nЗдесь Вы можете создать цифровую страницу памяти'
+        return text     
+
+    @property
     def start(self):
-        text = 'Выберите карточку'
+        text = 'Выберите действие'
         return text
 
+    @property
+    def edit(self):
+        text = 'Выберите карточку, которую хотите изменить'
+        return text
+    
+    @property
     def base_info(self):
         text = {
             "full_name": 'Введите ФИО',
@@ -18,6 +30,7 @@ class Text():
         }
         return text
 
+    @property
     def another_info(self):
         text = {
             "birth_adress": '',
@@ -27,6 +40,7 @@ class Text():
             "citizen": '',
         }
 
+    @property
     def epitaph_text(self):
         text = 'Давайте напишем биографию вместе, начнем с эпитафии ответьте на пару вопросов'
         question = [
@@ -44,14 +58,17 @@ class Text():
         ]
         return {'text':text, 'question':question}
 
+    @property
     def biography_main(self):
         text = 'Биография - основа'
         return text 
 
+    @property
     def biography_conclusion(self):
         text = 'Биография - заключение'
         return text 
 
+    @property
     def friend_words(self):
         text = 'Слова друзей'
         return text 
