@@ -97,21 +97,21 @@ class MemoryCodeAPI:
                 return f"Ошибка при выполнении запроса: {e}"
 
     @require_auth
-    async def get_individual_page_by_name(self, name: str) -> str:
+    async def get_individual_page_by_id(self, page_id: int) -> str:
         """
         Извлекает страницу памяти по имени.
 
         Args:
             access_token (str): Токен доступа к API.
-            name (str): Имя для поиска страницы.
+            page_id (int): ID для поиска страницы
 
         Returns:
             Optional[str]: JSON-строка с данными страницы или None, если страница не найдена.
         """
 
         for page in self.memory_pages:
-            if isinstance(page, dict) and page.get('name') == name:
-                logger.info(f"Страница по имени {name} найдена!")
+            if isinstance(page, dict) and page.get('id') == page_id:
+                logger.info(f"Страница по ID: {page_id} найдена!")
                 return json.dumps(page)
 
         logger.warning("Страница памяти не найдена.")
@@ -366,12 +366,13 @@ async def main():
     if access_token:
         # Получение информации о всех страницах
         pages_info = await api.get_all_memory_pages()
+        print(pages_info)
 
         # Получение информации о конкретных страницах
-        person_name = "Команда Хакатон 10/1"
-        page_info_1 = await api.get_individual_page_by_name(person_name)
-        person_name = "Команда Хакатон 10/2"
-        page_info_2 = await api.get_individual_page_by_name(person_name)
+        page_id = 8894
+        page_info_1 = await api.get_individual_page_by_id(page_id)
+        page_id = 8757
+        page_info_2 = await api.get_individual_page_by_id(page_id)
 
         if page_info_1 and page_info_2:
             # Загрузка фотографии
