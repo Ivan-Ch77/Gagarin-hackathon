@@ -69,10 +69,10 @@ class EpitaphUpdateScene(Scene, state="update"):
         step: int | None = 0
     ) -> Any:
 
-
+        first_data = await state.get_data()
         if type(msg) == CallbackQuery:
             message = msg.message
-        if not step: # На самом первом шаге обрабатывается CallbackQuery на остальных Message
+        if not step and not first_data: # На самом первом шаге обрабатывается CallbackQuery на остальных Message
             clbck_data_id = NameCallback.unpack(msg.data).id
             api = await self.get_api(state, msg.from_user.id)
             if api.access_token:
@@ -85,7 +85,7 @@ class EpitaphUpdateScene(Scene, state="update"):
                         page_msg = await message.edit_text(f"Выбрана карточка {name}")
                     else:
                         page_msg = await message.edit_text(f"Выбрана карточка без названия")
-                    await state.update_data(
+                    data = await state.update_data(
                         page_chat_id=page_msg.chat.id,
                         page_msg_id=page_msg.message_id
                     )
@@ -112,16 +112,16 @@ class EpitaphUpdateScene(Scene, state="update"):
                 text = ya_answer,
                 reply_markup=kb.yandex_query
             )
-            await state.update_data(
+            data = await state.update_data(
                 allow_msg=False,
                 ya_answer=ya_answer
             )
             return
 
         # Пропуск вопросов на которые уже есть ответы
-        await state.update_data(step=step)
+        data = await state.update_data(step=step)
         
-        data = await state.get_data()
+        # data = await state.get_data()
         page = data['select_page']
         if question.answer:
             key = question.answer.key
@@ -158,7 +158,7 @@ class EpitaphUpdateScene(Scene, state="update"):
             answers = data.get("answers", {})
             answers[step] = question.answer.text
             
-            if not step:
+            if not step and not first_data:
                 message = await message.answer(
                     text = f"Вопрос {step+1}/{len(EPITAPH_QUESTIONS)}\n" + 'На вопрос "' + text_ + f'" уже есть ответ:\n<b>{question.answer.text}</b>\nОставить его?',
                     reply_markup=kb.check_ready_answer_kb,
@@ -171,7 +171,7 @@ class EpitaphUpdateScene(Scene, state="update"):
                     reply_markup=kb.check_ready_answer_kb,
                 )
             
-            await state.update_data(
+            data = await state.update_data(
                 answers=answers, 
                 allow_msg=False,
                 chat_id=message.chat.id,
@@ -179,7 +179,7 @@ class EpitaphUpdateScene(Scene, state="update"):
             )
         else: # Нет данных для ответа на вопрос
             text_ = question.text
-            if not step:
+            if not step and not first_data:
                 message = await message.answer(
                     text = f"Вопрос {step+1}/{len(EPITAPH_QUESTIONS)}\n" + text_,
                     reply_markup=kb.necessary_q,
@@ -191,7 +191,7 @@ class EpitaphUpdateScene(Scene, state="update"):
                     text = f"Вопрос {step+1}/{len(EPITAPH_QUESTIONS)}\n" + text_,
                     reply_markup=kb.necessary_q,
                 )
-            await state.update_data(
+            data = await state.update_data(
                 allow_msg=True,
                 chat_id=message.chat.id,
                 msg_id=message.message_id
@@ -219,14 +219,21 @@ class EpitaphUpdateScene(Scene, state="update"):
 
 
     @on.callback_query(F.data == "back")
-    async def back(self, clbck: CallbackQuery, state: FSMContext) -> None:
+    async def back(self, clbck: CallbackQuery, bot: Bot, state: FSMContext) -> None:
         data = await state.get_data()
         step = data["step"]
         previous_step = step - 1
         if previous_step < 0:
-            clbck.message.answer(text="Отмена заполнения")
+            await bot.delete_message(chat_id=data['page_chat_id'], message_id=data['page_msg_id'])
+            await bot.edit_message_text(
+                chat_id=data['chat_id'],
+                message_id=data['msg_id'],
+                text="Обновление данных отменено",
+                reply_markup=kb.back_to_menu_kb
+            )
+            await state.clear()
             return await self.wizard.exit()
-        return await self.wizard.back(step=previous_step)
+        return await self.wizard.retake(step=previous_step)
 
 
     #Обработка кнопки перегенерировать
