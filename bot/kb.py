@@ -3,14 +3,32 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from bot.callback import *
 
 
-# кнопки ДА и НЕТ
-check_kb = [
+# кнопки для подтверждения информации в #забыл#
+check_ready_answer_kb = [
     [ 
-        InlineKeyboardButton(text="Да", callback_data="yes"),
-        InlineKeyboardButton(text="Нет", callback_data="no"),
+        InlineKeyboardButton(text="Оставить", callback_data="yes"),
+        InlineKeyboardButton(text="Поменять", callback_data="no"),
+    ],
+    [ 
+        InlineKeyboardButton(text="Назад", callback_data="back"),
+    ],
+    [
+        InlineKeyboardButton(text="Закончить", callback_data="cancel"),
+    ],
+]
+check_ready_answer_kb = InlineKeyboardMarkup(inline_keyboard=check_ready_answer_kb)
+
+# кнопки для изменения ответа от яндекса
+yandex_query = [
+    [ 
+        InlineKeyboardButton(text="Перегенирировать", callback_data="regenerate"),
+        InlineKeyboardButton(text="Сохранить", callback_data="save"),
+    ],
+    [
+        InlineKeyboardButton(text="Отмена", callback_data="cancel"),
     ]
 ]
-check_kb = InlineKeyboardMarkup(inline_keyboard=check_kb)
+yandex_query = InlineKeyboardMarkup(inline_keyboard=yandex_query)
 
 # начальное меню бота
 menu = [
@@ -23,6 +41,11 @@ menu = [
 ]
 menu = InlineKeyboardMarkup(inline_keyboard=menu)
 
+
+back_to_menu_kb = InlineKeyboardMarkup(
+    inline_keyboard=[[InlineKeyboardButton(text="В меню", callback_data="menu")]]
+)
+
 # выбор редактируемых данных
 edit_data = [
     [ 
@@ -32,10 +55,12 @@ edit_data = [
 ]
 edit_data = InlineKeyboardMarkup(inline_keyboard=edit_data)
 
-# клавиатура обязательных вопросов
+# клавиатура для вопросов
 necessary_q = [
     [
         InlineKeyboardButton(text="Назад", callback_data="back"),
+    ],
+    [
         InlineKeyboardButton(text="Закончить", callback_data="cancel"),
     ],
 ]
@@ -46,6 +71,8 @@ necessary_q = InlineKeyboardMarkup(inline_keyboard=necessary_q)
 unnecessary_q = [
     [
         InlineKeyboardButton(text="Назад", callback_data="back"),
+    ],
+    [
         InlineKeyboardButton(text="Готово", callback_data="ask_submit"),
     ],
 ]

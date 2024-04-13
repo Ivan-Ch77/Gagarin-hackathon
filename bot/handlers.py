@@ -58,15 +58,12 @@ async def edit_card(clbck: CallbackQuery):
 async def edit_card(clbck: CallbackQuery):
     await clbck.message.edit_text(
         text="Создание карточек доступно только для платных пользователей",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
-            InlineKeyboardButton(text="Назад", callback_data="menu")
-        ]])
+        reply_markup=kb.back_to_menu_kb
     )
 
 
 #Обработчик кнопки "Редактировать карточку"
-@router.callback_query(F.data == "epitaph")
-@router.callback_query(F.data == "biography")
+@router.callback_query(F.data == "epitaph" or F.data == "biography")
 async def edit_card(clbck: CallbackQuery):
     try:
         api = mc(MEMORYCODE_EMAIL, MEMORYCODE_PASSWORD, MEMORYCODE_BASE_URL)

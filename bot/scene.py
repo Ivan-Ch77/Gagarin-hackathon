@@ -69,12 +69,12 @@ class EpitaphUpdateScene(Scene, state="update"):
         step: int | None = 0
     ) -> Any:
 
-        user_id = msg.from_user.id
-        api = await self.get_api(state, user_id)
+
         if type(msg) == CallbackQuery:
             message = msg.message
         if not step: # На самом первом шаге обрабатывается CallbackQuery на остальных Message
             clbck_data_id = NameCallback.unpack(msg.data).id
+            api = await self.get_api(state, msg.from_user.id)
             if api.access_token:
                 pages = await api.get_all_memory_pages()
                 select_page = next((page for page in pages if str(clbck_data_id) == str(page['id'])), None)
@@ -82,19 +82,24 @@ class EpitaphUpdateScene(Scene, state="update"):
                     await state.update_data(select_page=select_page)
                     name = select_page['name']
                     if name:
-                        await message.edit_text(f"Выбрана карточка {name}")
+                        page_msg = await message.edit_text(f"Выбрана карточка {name}")
                     else:
-                        await message.edit_text(f"Выбрана карточка без названия")
+                        page_msg = await message.edit_text(f"Выбрана карточка без названия")
+                    await state.update_data(
+                        page_chat_id=page_msg.chat.id,
+                        page_msg_id=page_msg.message_id
+                    )
 
         try: # Остановка сцены когда заканчиваются вопросы
             question = EPITAPH_QUESTIONS[step]
         except IndexError:
+            
+            data = await state.get_data()
             await bot.edit_message_text(
                 chat_id=data['chat_id'],
                 message_id=data['msg_id'],
-                text = "Обработка запроса...",
+                text = "Создание эпитафии...",
             )
-            data = await state.get_data()
             select_page = data['select_page']
             answers = data['answers']
             user_answers = [value for value in answers.values()]
@@ -105,11 +110,13 @@ class EpitaphUpdateScene(Scene, state="update"):
                 chat_id=data['chat_id'],
                 message_id=data['msg_id'],
                 text = ya_answer,
+                reply_markup=kb.yandex_query
             )
-            if api.access_token:
-                updated_fields = {'epitaph': ya_answer}
-                updated_page = await api.update_memory_page(json.dumps(select_page), json.dumps(updated_fields))
-            return await self.wizard.exit()
+            await state.update_data(
+                allow_msg=False,
+                ya_answer=ya_answer
+            )
+            return
 
         # Пропуск вопросов на которые уже есть ответы
         await state.update_data(step=step)
@@ -154,14 +161,14 @@ class EpitaphUpdateScene(Scene, state="update"):
             if not step:
                 message = await message.answer(
                     text = f"Вопрос {step+1}/{len(EPITAPH_QUESTIONS)}\n" + 'На вопрос "' + text_ + f'" уже есть ответ:\n<b>{question.answer.text}</b>\nОставить его?',
-                    reply_markup=kb.check_kb,
+                    reply_markup=kb.check_ready_answer_kb,
                 )
             else:
                 message = await bot.edit_message_text(
                     chat_id=data['chat_id'],
                     message_id=data['msg_id'],
                     text = f"Вопрос {step+1}/{len(EPITAPH_QUESTIONS)}\n" + 'На вопрос "' + text_ + f'" уже есть ответ:\n<b>{question.answer.text}</b>\nОставить его?',
-                    reply_markup=kb.check_kb,
+                    reply_markup=kb.check_ready_answer_kb,
                 )
             
             await state.update_data(
@@ -174,8 +181,8 @@ class EpitaphUpdateScene(Scene, state="update"):
             text_ = question.text
             if not step:
                 message = await message.answer(
-                    text = f"Вопрос {step+1}/{len(EPITAPH_QUESTIONS)}\n" + 'На вопрос "' + text_ + f'" уже есть ответ:\n<b>{question.answer.text}</b>\nОставить его?',
-                    reply_markup=kb.check_kb,
+                    text = f"Вопрос {step+1}/{len(EPITAPH_QUESTIONS)}\n" + text_,
+                    reply_markup=kb.necessary_q,
                 )
             else:
                 message = await bot.edit_message_text(
@@ -190,18 +197,24 @@ class EpitaphUpdateScene(Scene, state="update"):
                 msg_id=message.message_id
             )
 
-
+    # Ответы пользователя на вопросы
     @on.message(F.text)
-    async def answer(self, msg: Message, state: FSMContext) -> None:
+    async def answer(self, msg: Message, bot: Bot, state: FSMContext) -> None:
         data = await state.get_data()
         allow_msg = data['allow_msg']
         if allow_msg:
             step = data["step"]
+            
             answers = data.get("answers", {})
             answers[step] = msg.text
-            # print(data)
             await state.update_data(answers=answers)
             await msg.delete()
+            try:
+                change_field_msg_id = data['change_field_msg_id']
+                change_field_chat_id = data['change_field_chat_id']
+                await bot.delete_message(chat_id=change_field_chat_id, message_id=change_field_msg_id)
+            except Exception as e:
+                pass
             await self.wizard.retake(step=step + 1)
 
 
@@ -214,7 +227,44 @@ class EpitaphUpdateScene(Scene, state="update"):
             clbck.message.answer(text="Отмена заполнения")
             return await self.wizard.exit()
         return await self.wizard.back(step=previous_step)
+
+
+    #Обработка кнопки перегенерировать
+    @on.callback_query(F.data == "regenerate")
+    async def regenerate_ya_answer(self, clbck: CallbackQuery, state: FSMContext) -> None:
+        data = await state.get_data()
+        step = data['step']
+        await self.wizard.retake(step=step + 1)
     
+    
+    #Обработка кнопки сохранить
+    @on.callback_query(F.data == "save")
+    async def save_ya_answer(self, clbck: CallbackQuery, bot: Bot , state: FSMContext) -> None:
+        data = await state.get_data()
+        await bot.edit_message_text(
+            chat_id=data['chat_id'],
+            message_id=data['msg_id'],
+            text = "Сохранение данных в MemoryCode...",
+        )
+
+        api = await self.get_api(state, clbck.message.from_user.id)
+        if api.access_token:
+            updated_fields = {'epitaph': data['ya_answer']}
+            updated_page = await api.update_memory_page(
+                json.dumps(data['select_page']), 
+                json.dumps(updated_fields)
+            )
+            await bot.delete_message(chat_id=data['page_chat_id'], message_id=data['page_msg_id'])
+            await bot.edit_message_text(
+                    chat_id=data['chat_id'],
+                    message_id=data['msg_id'],
+                    text = "Данные сохранены:",
+                    reply_markup=kb.back_to_menu_kb
+                )
+        await state.clear()
+        await self.wizard.exit()
+    
+
     # Выбор существующего ответа
     @on.callback_query(F.data == "yes")
     async def stay_answer(self, clbck: CallbackQuery, state: FSMContext) -> None:
@@ -227,13 +277,27 @@ class EpitaphUpdateScene(Scene, state="update"):
         await state.update_data(allow_msg=True)
         data = await state.get_data()
         step = data['step']
-        await clbck.message.answer(text="Напишите желаемый ответ")
-    
+        msg = await clbck.message.answer(text="Напишите желаемый ответ")
+        await state.update_data(
+            change_field_chat_id = msg.chat.id,
+            change_field_msg_id = msg.message_id
+        )
+
+
     #Обработка кнопки отменить
     @on.callback_query(F.data == "cancel")
-    async def cancel(self, clbck: CallbackQuery, state: FSMContext) -> None:
-        await clbck.message.answer(text="Отмена заполнения")
+    async def cancel(self, clbck: CallbackQuery, bot: Bot, state: FSMContext) -> None:
+        data = await state.get_data()
+        await bot.delete_message(chat_id=data['page_chat_id'], message_id=data['page_msg_id'])
+        await bot.edit_message_text(
+            chat_id=data['chat_id'],
+            message_id=data['msg_id'],
+            text="Обновление данных отменено",
+            reply_markup=kb.back_to_menu_kb
+        )
+        await state.clear()
         return await self.wizard.exit()
+
 
     #Обработка сабмита
     @on.callback_query(F.data == "ask_submit")
@@ -248,6 +312,7 @@ class EpitaphUpdateScene(Scene, state="update"):
         f"<b>{FIELDS[2].text}</b> {answers[2]}"
         await clbck.message.answer(text=text)
         await self.wizard.exit()
+
 
     #Обработка выхода
     @on.callback_query.exit()
@@ -264,10 +329,13 @@ update_router.callback_query.register(
 
 
 
-#Сцена 2 - для обработки эпитафии и биографии
-class AboutScene(Scene, state="about"):
+#Сцена 2 - биографии
+class BiographUpdateScene(Scene, state="about"):
     ...
 
 about_router = Router(name=__name__)
-about_router.callback_query.register(AboutScene.as_handler(), NameCallback.filter("DATA"))
-about_router.message.register(AboutScene.as_handler(), Command("COMMAND"))
+about_router.callback_query.register(
+    BiographUpdateScene.as_handler(),
+    NameCallback.filter(F.tag == "page_choose" and F.edit_data == "biography")
+)
+
