@@ -50,6 +50,15 @@ class EpitaphUpdateScene(Scene, state="update"):
         
         #--------------------Тут просто взять данные из словаря---------------------
 
+    async def get_api(self, state: FSMContext, user_id):
+        data = await state.get_data()
+        api = data.get('api')
+        if not api:
+            api = mc(MEMORYCODE_EMAIL, MEMORYCODE_PASSWORD, MEMORYCODE_BASE_URL)
+            api.access_token = await api.authenticate()
+            await state.update_data(api=api)
+        return api
+
     @on.callback_query.enter()
     @on.message.enter()
     async def on_enter(
@@ -59,17 +68,17 @@ class EpitaphUpdateScene(Scene, state="update"):
         step: int | None = 0
     ) -> Any:
 
+        user_id = msg.from_user.id
+        api = await self.get_api(state, user_id)
+
         if not step: # На самом первом шаге обрабатывается CallbackQuery на остальных Message
             print(NameCallback.unpack(msg.data))
             clbck_data_id = NameCallback.unpack(msg.data).id
-            api = mc(MEMORYCODE_EMAIL, MEMORYCODE_PASSWORD, MEMORYCODE_BASE_URL)
-            access_token = await api.authenticate()
-            if access_token:
+            if api.access_token:
                 pages = await api.get_all_memory_pages()
-                for page in pages:
-                    if str(clbck_data_id) == str(page['id']):
-                        select_page = page
-                await state.update_data(select_page=select_page)
+                select_page = next((page for page in pages if str(clbck_data_id) == str(page['id'])), None)
+                if select_page:
+                    await state.update_data(select_page=select_page)
 
         if type(msg) == CallbackQuery:
             msg = msg.message
@@ -79,7 +88,7 @@ class EpitaphUpdateScene(Scene, state="update"):
             question = EPITAPH_QUESTIONS[step]
         except IndexError:
             data = await state.get_data()
-            print(data)
+            select_page = data['select_page']
             answers = data['answers']
             user_answers = [value for value in answers.values()]
             ya_answer = await yandexGPT(user_answers)
@@ -89,6 +98,9 @@ class EpitaphUpdateScene(Scene, state="update"):
                 text = ya_answer,
                 # reply_markup=kb.choise_answer
             )
+            if api.access_token:
+                updated_fields = {'epitaph': ya_answer}
+                updated_page = await api.update_memory_page(json.dumps(select_page), json.dumps(updated_fields))
             return await self.wizard.exit()
 
         # Пропуск вопросов на которые уже есть ответы
