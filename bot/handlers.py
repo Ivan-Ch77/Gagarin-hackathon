@@ -12,6 +12,7 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.methods import delete_message, edit_message_text
 from aiogram import Bot
+from aiogram.fsm.scene import Scene, SceneRegistry, ScenesManager
 
 from bot.state import *
 from bot.callback import *
@@ -32,7 +33,8 @@ text = Text()
 
 #Обработчик команды старт
 @router.message(Command("start"))
-async def start_command(msg: Message):
+async def start_command(msg: Message, scenes: ScenesManager):
+    await scenes.close()
     # if msg.from_user.id not in bd: - проверка наличия юзера в бд
     #     await msg.answer(text.new_start)
     await msg.answer(text.start, reply_markup=kb.menu)

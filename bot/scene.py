@@ -78,6 +78,7 @@ class EpitaphUpdateScene(Scene, state="update"):
             question = QUESTIONS[step]
         except IndexError:
             data = await state.get_data()
+            print(data)
             answers = data['answers']
             user_answers = [value for value in answers.values()]
             ya_answer = await yandexGPT(user_answers)
@@ -220,7 +221,7 @@ class EpitaphUpdateScene(Scene, state="update"):
 update_router = Router(name=__name__)
 update_router.callback_query.register(
     EpitaphUpdateScene.as_handler(), 
-    NameCallback.filter(F.tag == "page_choose")
+    NameCallback.filter(F.tag == "page_choose" and F.edit_data == "epitaph")
 )
 
 
