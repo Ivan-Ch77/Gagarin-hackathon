@@ -1,7 +1,6 @@
 import asyncio
 import json
 import logging
-from dataclasses import dataclass, field
 from os import getenv
 from typing import Any
 
@@ -26,69 +25,36 @@ from memorycode.config import (
     MEMORYCODE_BASE_URL
 )
 
+import bot.kb as kb
 from bot.callback import NameCallback
-
-    
-@dataclass
-class Question:
-
-    text: str
-
-QUESTIONS = [
-    Question(
-        text="Как его звали?"
-    ),
-    Question(
-        text="Сколько лет ему было, когда он ушел от нас?"
-    ),
-    Question(
-        text="В какой стране и городе он родился?"
-    ),
-    Question(
-        text="Какую профессию он имел?"
-    ),
-    Question(
-        text="Что он любил делать в свободное время?"
-    ),
-    Question(
-        text="Был ли он религиозным человеком?"
-    ),
-    Question(
-        text="Имел ли он какие-то особые увлечения/хобби?"
-    ),
-    Question(
-        text="Были ли у него особые жизненные принципы или ценности, которые он хотел бы передать своим потомкам?"
-    ),
-    Question(
-        text="Был ли он хорошим семьянином?"
-    ),
-    Question(
-        text="Каким он был по характеру: добрым, веселым, строгим, спокойным?"
-    ),
-    Question(
-        text="Есть ли какие-то особенные истории или моменты, связанные с ним, которые ты хотел бы увековечить в эпитафии?"
-    )
-]
+from bot.questions import QUESTIONS, FIELDS
 
 class QuizScene(Scene, state="quiz"):
 
     @on.callback_query.enter()
     @on.message.enter()
-    async def on_enter(self, msg: CallbackQuery | Message, state: FSMContext, step: int | None = 0) -> Any:
+    async def on_enter(self, msg: Message | CallbackQuery, state: FSMContext, step: int | None = 0) -> Any:
 
-        if not step:
-            msg.answer("HALLLOU")
+        #обрабатваем шаги начиная с 0. IndexError вызовется когда достигнем лимит вопросов
         try:
             quiz = QUESTIONS[step]
         except IndexError:
             return await self.wizard.exit()
         
-        if step > 0:
-        
         await state.update_data(step=step)
-        return await msg.answer(
-            text=QUESTIONS[step].text
-        )
+
+        text = QUESTIONS[step].text 
+
+        if step < 3:
+            return await msg.answer(
+                text,
+                reply_markup=kb.necessary_q,
+            )
+        else:         
+            return await msg.answer(
+                text,
+                reply_markup=kb.unnecessary_q,
+            )
 
     @on.message(F.text)
     async def answer(self, msg: Message, state: FSMContext) -> None:
@@ -99,26 +65,46 @@ class QuizScene(Scene, state="quiz"):
         answers[step] = msg.text
         
         await state.update_data(answers=answers)
-        print(data)
-        
+
         await self.wizard.retake(step=step + 1)
 
-    @on.message(F.text == "Готово")
-    async def end(self, msg: Message, state: FSMContext) -> None:
-        pass
+    @on.callback_query(F.data == "back")
+    async def back(self, clbck: CallbackQuery, state: FSMContext) -> None:
+        data = await state.get_data()
+        step = data["step"]
 
-    @on.message(F.text == "Назад")
-    async def back(self, msg: Message, state: FSMContext) -> None:
-        pass
+        previous_step = step - 1
+        if previous_step < 0:
+            # In case when the user tries to go back from the first question,
+            # we just exit the quiz
+            return await self.wizard.exit()
+        return await self.wizard.back(step=previous_step)
 
-    @on.message(F.text == "Отменить")
-    async def end_wo_save(self, msg: Message, state: FSMContext) -> None:
-        pass
+    @on.callback_query(F.data == "cancel")
+    async def cancel(self, clbck: CallbackQuery, state: FSMContext) -> None:
+        print("skdnvkdfnvkndk;fvnkdfv")
+        await clbck.answer("Отмена заполнения")
+        return await self.wizard.exit()
 
+    @on.callback_query(F.data == "ask_submit")
+    async def submit(self, clbck: CallbackQuery, state: FSMContext) -> None:
+        data = await state.get_data()
+        print("Test")
+        answers = data.get("answers", {})
+        steps = data["step"]
+        text = "<b>Проверьте основные данные</b>\n"+\
+        f"<b>{FIELDS[0].text}</b> {answers[0]}\n"+\
+        f"<b>{FIELDS[1].text}</b> {answers[1]}\n"+\
+        f"<b>{FIELDS[2].text}</b> {answers[2]}"
+        await clbck.answer(text)
+        await self.wizard.exit()
+
+    @on.callback_query.exit()
     @on.message.exit()
-    async def answer(self, msg: Message, state: FSMContext) -> None:
-        pass
+    async def exit(self, msg: Message | CallbackQuery, state: FSMContext) -> None:            
+        await state.set_data({})
+            
 
 quiz_router = Router(name=__name__)
+quiz_router.callback_query.register(QuizScene.as_handler(), NameCallback.filter(F.tag == ("create_card", "back", "cancel", "ask_submit")))
 quiz_router.message.register(QuizScene.as_handler(), Command("test"))
-# quiz_router.callback_query.register(QuizScene.as_handler(), NameCallback.filter(F.tag == "create_card"))
