@@ -1,5 +1,5 @@
-
 import logging
+import json
 from aiogram import types, F, Router
 from aiogram.types import (
     KeyboardButton,
@@ -20,186 +20,103 @@ from bot.text import Text
 
 from yandex.main import yandexGPT
 
+from memorycode.api import MemoryCodeAPI as mc
+from memorycode.config import (
+    MEMORYCODE_EMAIL,
+    MEMORYCODE_PASSWORD,
+    MEMORYCODE_BASE_URL
+)
 
 router = Router()
 text = Text()
 
-
+#Обработчик команды старт
 @router.message(Command("start"))
 async def start_command(msg: Message):
+    # if msg.from_user.id not in bd: - проверка наличия юзера в бд
+    #     await msg.answer(text.new_start)
+    await msg.answer(text.start, reply_markup=kb.menu)
+
+@router.callback_query(F.data == "edit_card")
+async def edit_card(clbck: CallbackQuery):
+    await clbck.message.answer(
+        text="Выберите данные для обновления",
+        reply_markup=kb.edit_data
+    )
+
+
+#Обработчик кнопки "Редактировать карточку"
+@router.callback_query(F.data == "epitaph")
+@router.callback_query(F.data == "biography")
+async def edit_card(clbck: CallbackQuery):
     try:
-        text_ = text.start() 
-        await msg.answer(
-            text=text_,
-            reply_markup=kb.menu
-        )
+        api = mc(MEMORYCODE_EMAIL, MEMORYCODE_PASSWORD, MEMORYCODE_BASE_URL)
+        # Аутентификация и получение токена доступа
+        access_token = await api.authenticate()
+        if access_token:
+            pages_info = await api.get_all_memory_pages()
+            text_ = text.edit
+            name_ids = {}
+            for page in pages_info:
+                id = page['id']
+                name = page['name']
+                name_ids[id]=name
+            await clbck.message.edit_text(
+                text=text_,
+                reply_markup=kb.page_kb(
+                    edit_data=clbck.data,
+                    name_ids=name_ids
+                )
+                
+            )
+        else:
+            await clbck.answer(
+                text="Вы не зарегистрированы",
+            )
     except Exception as e:
         logging.warning(f'Error in start:\n{e}')
-        
 
-@router.callback_query(F.data == "create")
-async def create(clbck: CallbackQuery):
-    ...
-    
-    
-@router.callback_query(F.data == "support")
-async def support(clbck: CallbackQuery, state: FSMContext):
-    await state.set_state(Support.biography_intro_1)
 
-    text_ = text.biography_intro()['text']
-    await clbck.message.edit_text(
-        text=text_,
-    )
-    await state.update_data(msgID=clbck.message.message_id,
-                            chatID=clbck.message.chat.id)
-    question = text.biography_intro()['question'][0]
-    await clbck.message.answer(
-        text=question,
-        reply_markup=kb.skip_question
-    )
-    
-    
-@router.message(Support.biography_intro_1)
-async def biography_intro_1(msg: Message, state: FSMContext):
-    await state.set_state(Support.biography_intro_2)
-    message = msg.text
-    await state.update_data(biography_intro_1=message)
-    question = text.biography_intro()['question'][1]
-    await msg.answer(
-        text=question,
-        reply_markup=kb.skip_question
-    )
-    
-    
-@router.message(Support.biography_intro_2)
-async def biography_intro_2(msg: Message, state: FSMContext):
-    await state.set_state(Support.biography_intro_3)
-    message = msg.text
-    await state.update_data(biography_intro_2=message)
-    question = text.biography_intro()['question'][2]
-    await msg.answer(
-        text=question,
-        reply_markup=kb.skip_question
-    )
 
-@router.message(Support.biography_intro_3)
-async def biography_intro_3(msg: Message, state: FSMContext):
-    await state.set_state(Support.biography_intro_4)
-    message = msg.text
-    await state.update_data(biography_intro_3=message)
-    question = text.biography_intro()['question'][3]
-    await msg.answer(
-        text=question,
-        reply_markup=kb.skip_question
-    )
 
-@router.message(Support.biography_intro_4)
-async def biography_intro_4(msg: Message, state: FSMContext):
-    await state.set_state(Support.biography_intro_5)
-    message = msg.text
-    await state.update_data(biography_intro_4=message)
-    question = text.biography_intro()['question'][4]
-    await msg.answer(
-        text=question,
-        reply_markup=kb.skip_question
-    )
 
-@router.message(Support.biography_intro_5)
-async def biography_intro_5(msg: Message, state: FSMContext):
-    await state.set_state(Support.biography_intro_6)
-    message = msg.text
-    await state.update_data(biography_intro_5=message)
-    question = text.biography_intro()['question'][5]
-    await msg.answer(
-        text=question,
-        reply_markup=kb.skip_question
-    )
+
+
+
+
+
+
+
+
+
+
+
+
+
+# @router.message(UpdateInfo.epitaph_11)
+# async def epitaph_11(msg: Message, state: FSMContext):
+#     # await state.set_state(UpdateInfo.epitaph_show)
+#     message = msg.text
+#     await state.update_data(epitaph_11=message)
+#     data = await state.get_data()
+#     del data['msgID'], data['chatID']
+#     user_answer = [value for value in data.values()]
+#     print(user_answer)
+#     ya_answer = await yandexGPT(user_answer)
+#     print(ya_answer)
+#     await state.update_data(ya_answer=ya_answer)
+#     ya_answer = '\n'.join(ya_answer)
+#     await msg.answer(
+#         text=ya_answer+ "\nВыберите какой вариант вам больше понравился:",
+#         reply_markup=kb.choise_answer
+#     )
+#     await state.set_state(UpdateInfo.epitaph_choice)
+
+# @router.callback_query(UpdateInfo.epitaph_choice)
+# async def epitaph_choice(clbck: CallbackQuery, state: FSMContext):
     
-@router.message(Support.biography_intro_6)
-async def biography_intro_6(msg: Message, state: FSMContext):
-    await state.set_state(Support.biography_intro_7)
-    message = msg.text
-    await state.update_data(biography_intro_6=message)
-    question = text.biography_intro()['question'][6]
-    await msg.answer(
-        text=question,
-        reply_markup=kb.skip_question
-    )
-
-@router.message(Support.biography_intro_7)
-async def biography_intro_7(msg: Message, state: FSMContext):
-    await state.set_state(Support.biography_intro_8)
-    message = msg.text
-    await state.update_data(biography_intro_7=message)
-    question = text.biography_intro()['question'][7]
-    await msg.answer(
-        text=question,
-        reply_markup=kb.skip_question
-    )
-    
-@router.message(Support.biography_intro_8)
-async def biography_intro_8(msg: Message, state: FSMContext):
-    await state.set_state(Support.biography_intro_9)
-    message = msg.text
-    await state.update_data(biography_intro_8=message)
-    question = text.biography_intro()['question'][8]
-    await msg.answer(
-        text=question,
-        reply_markup=kb.skip_question
-    )
-        
-@router.message(Support.biography_intro_9)
-async def biography_intro_9(msg: Message, state: FSMContext):
-    await state.set_state(Support.biography_intro_10)
-    message = msg.text
-    await state.update_data(biography_intro_9=message)
-    question = text.biography_intro()['question'][9]
-    await msg.answer(
-        text=question,
-        reply_markup=kb.skip_question
-    )
-
-@router.message(Support.biography_intro_10)
-async def biography_intro_10(msg: Message, state: FSMContext):
-    await state.set_state(Support.biography_intro_11)
-    message = msg.text
-    await state.update_data(biography_intro_10=message)
-    question = text.biography_intro()['question'][10]
-    await msg.answer(
-        text=question,
-        reply_markup=kb.skip_question
-    )
-
-@router.message(Support.biography_intro_11)
-async def biography_intro_11(msg: Message, state: FSMContext):
-    # await state.set_state(Support.biography_intro_show)
-    message = msg.text
-    await state.update_data(biography_intro_11=message)
-    data = await state.get_data()
-    del data['msgID'], data['chatID']
-    user_answer = [value for value in data.values()]
-    print(user_answer)
-    ya_answer = await yandexGPT(user_answer)
-    print(ya_answer)
-    await state.update_data(ya_answer=ya_answer)
-    ya_answer = '\n'.join(ya_answer)
-    await msg.answer(
-        text=ya_answer+ "\nВыберите какой вариант вам больше понравился:",
-        reply_markup=kb.choise_answer
-    )
-    await state.set_state(Support.biography_intro_choice)
-
-@router.callback_query(Support.biography_intro_choice)
-async def biography_intro_choice(clbck: CallbackQuery, state: FSMContext):
-    
-    choice = clbck.data
-    await clbck.message.answer(
-        text= f'Выбран {choice}'
-    )
-
-# @router.message(Support.biography_intro_show)
-# async def biography_intro_show(msg: Message, state: FSMContext):
-    
-    
-#     # await state.set_state(Support.biography_intro_show)
+#     choice = clbck.data
+#     await clbck.message.answer(
+#         text= f'Выбран {choice}'
+#     )
 
