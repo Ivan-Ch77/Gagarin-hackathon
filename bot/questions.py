@@ -15,7 +15,7 @@ class Question:
 
 
 
-QUESTIONS = [
+EPITAPH_QUESTIONS = [
     Question(
         text = "Как его звали?",
         answer = Answer(

@@ -28,7 +28,7 @@ from memorycode.config import (
 from aiogram.filters.callback_data import CallbackData
 import bot.kb as kb
 from bot.callback import NameCallback
-from bot.questions import QUESTIONS, FIELDS
+from bot.questions import EPITAPH_QUESTIONS, FIELDS
 from bot.text import Text
 from yandex.main import yandexGPT
 
@@ -60,6 +60,7 @@ class EpitaphUpdateScene(Scene, state="update"):
     ) -> Any:
 
         if not step: # На самом первом шаге обрабатывается CallbackQuery на остальных Message
+            print(NameCallback.unpack(msg.data))
             clbck_data_id = NameCallback.unpack(msg.data).id
             api = mc(MEMORYCODE_EMAIL, MEMORYCODE_PASSWORD, MEMORYCODE_BASE_URL)
             access_token = await api.authenticate()
@@ -75,7 +76,7 @@ class EpitaphUpdateScene(Scene, state="update"):
 
 
         try: # Остановка сцены когда заканчиваются вопросы
-            question = QUESTIONS[step]
+            question = EPITAPH_QUESTIONS[step]
         except IndexError:
             data = await state.get_data()
             print(data)
@@ -131,14 +132,14 @@ class EpitaphUpdateScene(Scene, state="update"):
             await state.update_data(answers=answers, allow_msg=False)
             
             return await msg.answer(
-                text = 'На вопрос "' + text_ + f'" уже есть ответ:\n<b>{question.answer.text}</b>\nОставить его?',
+                text = f"Вопрос {step+1}/{len(EPITAPH_QUESTIONS)}\n" + 'На вопрос "' + text_ + f'" уже есть ответ:\n<b>{question.answer.text}</b>\nОставить его?',
                 reply_markup=kb.check_kb,
             )
         else:
             await state.update_data(allow_msg=True)
             text_ = question.text
             return await msg.answer(
-                text = text_,
+                text = f"Вопрос {step+1}/{len(EPITAPH_QUESTIONS)}\n" + text_,
                 reply_markup=kb.necessary_q,
             )
 
