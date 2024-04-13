@@ -160,14 +160,14 @@ class EpitaphUpdateScene(Scene, state="update"):
             
             if not step and not first_data:
                 message = await message.answer(
-                    text = f"Вопрос {step+1}/{len(EPITAPH_QUESTIONS)}\n" + 'На вопрос "' + text_ + f'" уже есть ответ:\n<b>{question.answer.text}</b>\nОставить его?',
+                    text = f"Вопрос {step+1}/{len(EPITAPH_QUESTIONS)}\n" + 'Для вопроса "' + text_ + f'" уже есть ответ:\n<b>{question.answer.text}</b>\nОставить его?',
                     reply_markup=kb.check_ready_answer_kb,
                 )
             else:
                 message = await bot.edit_message_text(
                     chat_id=data['chat_id'],
                     message_id=data['msg_id'],
-                    text = f"Вопрос {step+1}/{len(EPITAPH_QUESTIONS)}\n" + 'На вопрос "' + text_ + f'" уже есть ответ:\n<b>{question.answer.text}</b>\nОставить его?',
+                    text = f"Вопрос {step+1}/{len(EPITAPH_QUESTIONS)}\n" + 'Для вопроса "' + text_ + f'" уже есть ответ:\n<b>{question.answer.text}</b>\nОставить его?',
                     reply_markup=kb.check_ready_answer_kb,
                 )
             
@@ -265,7 +265,7 @@ class EpitaphUpdateScene(Scene, state="update"):
             await bot.edit_message_text(
                     chat_id=data['chat_id'],
                     message_id=data['msg_id'],
-                    text = "Данные сохранены:",
+                    text = "Данные сохранены",
                     reply_markup=kb.back_to_menu_kb
                 )
         await state.clear()
