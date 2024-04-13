@@ -24,7 +24,7 @@ from memorycode.config import (
     MEMORYCODE_PASSWORD,
     MEMORYCODE_BASE_URL
 )
-
+from aiogram.filters.callback_data import CallbackData
 import bot.kb as kb
 from bot.callback import NameCallback
 from bot.questions import QUESTIONS, FIELDS
@@ -39,19 +39,12 @@ class QuizScene(Scene, state="quiz"):
     @on.callback_query.enter(NameCallback.filter())
     async def enter_edit_card(self, data: NameCallback, bot: Bot, state: FSMContext, step: int | None = 0):
         chat_id = data.message.chat.id
+        print(data.id)
         api = mc(MEMORYCODE_EMAIL, MEMORYCODE_PASSWORD, MEMORYCODE_BASE_URL)
         access_token = await api.authenticate()
-        page_info = await api.get_individual_page_by_id(data.id)
-        await bot.send_message(chat_id, str(page_info))
-        # access_token = await mc.get_access_token(MEMORYCODE_EMAIL, MEMORYCODE_PASSWORD)
-        # if access_token:
-        #     chat_id = data.message.chat.id
-        #     user_data = await mc.get_individual_page_by_name(data.name)
-        #     await bot.send_message(chat_id, "")
-        # else:
-        #     await bot.send_message(chat_id,
-        #         text="Вы не зарегестрированы",
-        #     )
+        
+        #--------------------Тут просто взять данные из словаря---------------------
+
     @on.message.enter()
     async def on_enter(self, msg: CallbackQuery | Message, state: FSMContext, step: int | None = 0) -> Any:
         #обрабатваем шаги начиная с 0. IndexError вызовется когда достигнем лимит вопросов
@@ -91,21 +84,19 @@ class QuizScene(Scene, state="quiz"):
     async def back(self, clbck: CallbackQuery, state: FSMContext) -> None:
         data = await state.get_data()
         step = data["step"]
-        print(step)
-        print("BACKK")
         previous_step = step - 1
         if previous_step < 0:
-            # In case when the user tries to go back from the first question,
-            # we just exit the quiz
             clbck.message.answer(text="Отмена заполнения")
             return await self.wizard.exit()
         return await self.wizard.back(step=previous_step)
 
+    #Обработка кнопки отменить
     @on.callback_query(F.data == "cancel")
     async def cancel(self, clbck: CallbackQuery, state: FSMContext) -> None:
         await clbck.message.answer(text="Отмена заполнения")
         return await self.wizard.exit()
 
+    #Обработка сабмита
     @on.callback_query(F.data == "ask_submit")
     async def submit(self, clbck: CallbackQuery, state: FSMContext) -> None:
         data = await state.get_data()
@@ -119,6 +110,7 @@ class QuizScene(Scene, state="quiz"):
         await clbck.message.answer(text=text)
         await self.wizard.exit()
 
+    #Обработка выхода
     @on.callback_query.exit()
     @on.message.exit()
     async def exit(self, msg: Message | CallbackQuery, state: FSMContext) -> None:            
@@ -131,7 +123,7 @@ quiz_router.message.register(QuizScene.as_handler(), Command("test"))
 
 
 #Сцена 2 - для обработки эпитафии и биографии
-class AboutScene(Scene, state="quiz"):
+class AboutScene(Scene, state="about"):
     ...
 
 about_router = Router(name=__name__)
