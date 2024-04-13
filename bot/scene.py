@@ -18,7 +18,7 @@ from aiogram.utils.formatting import (
     as_numbered_list,
     as_section,
 )
-import memorycode.api as mc
+from memorycode.api import MemoryCodeAPI as mc
 from memorycode.config import (
     MEMORYCODE_EMAIL,
     MEMORYCODE_PASSWORD,
@@ -28,13 +28,32 @@ from memorycode.config import (
 import bot.kb as kb
 from bot.callback import NameCallback
 from bot.questions import QUESTIONS, FIELDS
+from bot.text import Text
 
+text = Text()
+
+#Сцена 1 - для обработки простых вопросов
 class QuizScene(Scene, state="quiz"):
 
-    @on.callback_query.enter(CallbackQuery)
+    #Обработчик для редактирования пользователей
+    @on.callback_query.enter(NameCallback.filter())
+    async def enter_edit_card(self, data: NameCallback, bot: Bot, state: FSMContext, step: int | None = 0):
+        chat_id = data.message.chat.id
+        api = mc(MEMORYCODE_EMAIL, MEMORYCODE_PASSWORD, MEMORYCODE_BASE_URL)
+        access_token = await api.authenticate()
+        page_info = await api.get_individual_page_by_id(data.id)
+        await bot.send_message(chat_id, str(page_info))
+        # access_token = await mc.get_access_token(MEMORYCODE_EMAIL, MEMORYCODE_PASSWORD)
+        # if access_token:
+        #     chat_id = data.message.chat.id
+        #     user_data = await mc.get_individual_page_by_name(data.name)
+        #     await bot.send_message(chat_id, "")
+        # else:
+        #     await bot.send_message(chat_id,
+        #         text="Вы не зарегестрированы",
+        #     )
     @on.message.enter()
-    async def on_enter(self, msg: Message | CallbackQuery, state: FSMContext, step: int | None = 0) -> Any:
-
+    async def on_enter(self, msg: CallbackQuery | Message, state: FSMContext, step: int | None = 0) -> Any:
         #обрабатваем шаги начиная с 0. IndexError вызовется когда достигнем лимит вопросов
         try:
             quiz = QUESTIONS[step]
@@ -60,7 +79,7 @@ class QuizScene(Scene, state="quiz"):
     async def answer(self, msg: Message, state: FSMContext) -> None:
         data = await state.get_data()
         step = data["step"]
-
+        
         answers = data.get("answers", {})
         answers[step] = msg.text
         
@@ -106,5 +125,15 @@ class QuizScene(Scene, state="quiz"):
         await state.set_data({})
 
 quiz_router = Router(name=__name__)
-quiz_router.callback_query.register(QuizScene.as_handler(), NameCallback.filter(F.tag == ("create_card", "back", "cancel", "ask_submit")))
+quiz_router.callback_query.register(QuizScene.as_handler(), NameCallback.filter(F.tag == "page_choose"))
 quiz_router.message.register(QuizScene.as_handler(), Command("test"))
+
+
+
+#Сцена 2 - для обработки эпитафии и биографии
+class AboutScene(Scene, state="quiz"):
+    ...
+
+about_router = Router(name=__name__)
+about_router.callback_query.register(AboutScene.as_handler(), NameCallback.filter("DATA"))
+about_router.message.register(AboutScene.as_handler(), Command("COMMAND"))

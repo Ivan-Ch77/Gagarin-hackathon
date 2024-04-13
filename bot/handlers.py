@@ -20,7 +20,7 @@ from bot.text import Text
 
 from yandex.main import yandexGPT
 
-import memorycode.api as mc
+from memorycode.api import MemoryCodeAPI as mc
 from memorycode.config import (
     MEMORYCODE_EMAIL,
     MEMORYCODE_PASSWORD,
@@ -30,18 +30,21 @@ from memorycode.config import (
 router = Router()
 text = Text()
 
+#Обработчик команды старт
 @router.message(Command("start"))
 async def start_command(msg: Message):
-    # if msg.from_user.id not in bd:
+    # if msg.from_user.id not in bd: - проверка наличия юзера в бд
     #     await msg.answer(text.new_start)
     await msg.answer(text.start, reply_markup=kb.menu)
 
+#Обработчик кнопки "Редактировать карточку"
 @router.callback_query(F.data == "edit_card")
 async def edit_card(clbck: CallbackQuery):
     try:
-        access_token = await mc.get_access_token(MEMORYCODE_EMAIL, MEMORYCODE_PASSWORD)
+        api = mc(MEMORYCODE_EMAIL, MEMORYCODE_PASSWORD, MEMORYCODE_BASE_URL)
+        access_token = await api.authenticate()
         if access_token:
-            pages_info = await mc.get_all_memory_pages(access_token)
+            pages_info = await mc.get_all_memory_pages()
             text_ = text.edit
             name_ids = {}
             for page in pages_info:
@@ -58,7 +61,6 @@ async def edit_card(clbck: CallbackQuery):
             )
     except Exception as e:
         logging.warning(f'Error in start:\n{e}')
-
 
 # @router.callback_query(NameCallback.filter(F.tag == "page_choose"))
 # async def update_info(clbck: CallbackQuery, state: FSMContext, callback_data: NameCallback):
