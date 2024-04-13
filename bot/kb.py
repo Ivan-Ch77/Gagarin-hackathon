@@ -2,24 +2,56 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardBu
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from bot.callback import *
 
+
+# кнопки ДА и НЕТ
+check_kb = [
+    [ 
+        InlineKeyboardButton(text="Да", callback_data="yes"),
+        InlineKeyboardButton(text="Нет", callback_data="no"),
+    ]
+]
+check_kb = InlineKeyboardMarkup(inline_keyboard=check_kb)
+
 # начальное меню бота
 menu = [
-    [
-        InlineKeyboardButton(text="Создание", callback_data="create"),
-        InlineKeyboardButton(text="Помощь", callback_data="support"),
+    [ 
+        InlineKeyboardButton(text="Новая карточка", callback_data="create_card"),
     ],
+    [
+        InlineKeyboardButton(text="Редактировать карточку", callback_data="edit_card"),
+    ]
 ]
 menu = InlineKeyboardMarkup(inline_keyboard=menu)
 
-# клавиатура для пропуска вопроса
-skip_question = [
+# выбор редактируемых данных
+edit_data = [
+    [ 
+        InlineKeyboardButton(text="Эпитафия", callback_data="epitaph"),
+        InlineKeyboardButton(text="Биография", callback_data="biography"),
+    ]
+]
+edit_data = InlineKeyboardMarkup(inline_keyboard=edit_data)
+
+# клавиатура обязательных вопросов
+necessary_q = [
     [
-        InlineKeyboardButton(text="Пропустить", callback_data="skip"),
+        InlineKeyboardButton(text="Назад", callback_data="back"),
         InlineKeyboardButton(text="Закончить", callback_data="cancel"),
     ],
 ]
-skip_question = InlineKeyboardMarkup(inline_keyboard=skip_question)
+necessary_q = InlineKeyboardMarkup(inline_keyboard=necessary_q)
 
+
+# клавиатура необязательных вопросов
+unnecessary_q = [
+    [
+        InlineKeyboardButton(text="Назад", callback_data="back"),
+        InlineKeyboardButton(text="Готово", callback_data="ask_submit"),
+    ],
+]
+unnecessary_q = InlineKeyboardMarkup(inline_keyboard=unnecessary_q)
+
+# клавиатура для выбора ответов
 choise_answer = [
     [
         InlineKeyboardButton(text="1", callback_data="1"),
@@ -28,3 +60,22 @@ choise_answer = [
     ]
 ]
 choise_answer = InlineKeyboardMarkup(inline_keyboard=choise_answer)
+
+
+
+def page_kb(edit_data:str, name_ids:dict):
+    builder = InlineKeyboardBuilder()
+
+    for id, name in name_ids.items():
+        if not name:
+            name='Нет имени'
+        builder.button(
+            text=name,
+            callback_data=NameCallback(
+                tag="page_choose",
+                edit_data=str(edit_data),
+                id=str(id)
+            )
+        )
+    builder.adjust(1, repeat=True)
+    return builder.as_markup()

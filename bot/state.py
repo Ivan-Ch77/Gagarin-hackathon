@@ -1,16 +1,16 @@
 from aiogram.fsm.state import State, StatesGroup
 
-class Support(StatesGroup):
-    biography_intro_1 = State()
-    biography_intro_2 = State()
-    biography_intro_3 = State()
-    biography_intro_4 = State()
-    biography_intro_5 = State()
-    biography_intro_6 = State()
-    biography_intro_7 = State()
-    biography_intro_8 = State()
-    biography_intro_9 = State()
-    biography_intro_10 = State()
-    biography_intro_11 = State()
-    biography_intro_choice = State()
+class UpdateInfo(StatesGroup):
+    epitaph_1 = State()
+    epitaph_2 = State()
+    epitaph_3 = State()
+    epitaph_4 = State()
+    epitaph_5 = State()
+    epitaph_6 = State()
+    epitaph_7 = State()
+    epitaph_8 = State()
+    epitaph_9 = State()
+    epitaph_10 = State()
+    epitaph_11 = State()
+    epitaph_choice = State()
     
