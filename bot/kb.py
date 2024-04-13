@@ -17,6 +17,7 @@ menu = InlineKeyboardMarkup(inline_keyboard=menu)
 necessary_q = [
     [
         InlineKeyboardButton(text="Назад", callback_data="back"),
+        InlineKeyboardButton(text="Пропустить", callback_data="skip"),
         InlineKeyboardButton(text="Закончить", callback_data="cancel"),
     ],
 ]

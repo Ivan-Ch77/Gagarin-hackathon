@@ -115,7 +115,7 @@ class UpdateScene(Scene, state="update"):
 
         if tmp_availiable:
             answers = data.get("answers", {})
-            answers[step] = 
+            answers[step] = msg.text
             await state.update_data()
             await self.wizard.retake(step=step + 1)
         else:
@@ -144,6 +144,13 @@ class UpdateScene(Scene, state="update"):
         answers[step] = msg.text
         
         await state.update_data(answers=answers)
+        await self.wizard.retake(step=step + 1)
+
+    @on.callback_query(F.data == "skip")
+    async def answer(self, msg: Message, state: FSMContext) -> None:
+        data = await state.get_data()
+        step = data["step"]
+        
         await self.wizard.retake(step=step + 1)
 
     @on.callback_query(F.data == "back")
