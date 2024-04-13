@@ -64,29 +64,36 @@ class EpitaphUpdateScene(Scene, state="update"):
     async def on_enter(
         self, 
         msg: CallbackQuery | Message, 
+        bot: Bot,
         state: FSMContext,
         step: int | None = 0
     ) -> Any:
 
         user_id = msg.from_user.id
         api = await self.get_api(state, user_id)
-
+        if type(msg) == CallbackQuery:
+            message = msg.message
         if not step: # На самом первом шаге обрабатывается CallbackQuery на остальных Message
-            print(NameCallback.unpack(msg.data))
             clbck_data_id = NameCallback.unpack(msg.data).id
             if api.access_token:
                 pages = await api.get_all_memory_pages()
                 select_page = next((page for page in pages if str(clbck_data_id) == str(page['id'])), None)
                 if select_page:
                     await state.update_data(select_page=select_page)
-
-        if type(msg) == CallbackQuery:
-            msg = msg.message
-
+                    name = select_page['name']
+                    if name:
+                        await message.edit_text(f"Выбрана карточка {name}")
+                    else:
+                        await message.edit_text(f"Выбрана карточка без названия")
 
         try: # Остановка сцены когда заканчиваются вопросы
             question = EPITAPH_QUESTIONS[step]
         except IndexError:
+            await bot.edit_message_text(
+                chat_id=data['chat_id'],
+                message_id=data['msg_id'],
+                text = "Обработка запроса...",
+            )
             data = await state.get_data()
             select_page = data['select_page']
             answers = data['answers']
@@ -94,9 +101,10 @@ class EpitaphUpdateScene(Scene, state="update"):
             ya_answer = await yandexGPT(user_answers)
             if type(ya_answer) == list:
                 ya_answer = ya_answer[0]
-            await msg.answer(
+            await bot.edit_message_text(
+                chat_id=data['chat_id'],
+                message_id=data['msg_id'],
                 text = ya_answer,
-                # reply_markup=kb.choise_answer
             )
             if api.access_token:
                 updated_fields = {'epitaph': ya_answer}
@@ -137,35 +145,50 @@ class EpitaphUpdateScene(Scene, state="update"):
             else:
                 tmp_availiable = False
 
-        if tmp_availiable:
+        # print(data)
+        if tmp_availiable: # Есть данные для ответа на вопрос
             text_ = question.text            
             answers = data.get("answers", {})
             answers[step] = question.answer.text
-            await state.update_data(answers=answers, allow_msg=False)
             
-            return await msg.answer(
-                text = f"Вопрос {step+1}/{len(EPITAPH_QUESTIONS)}\n" + 'На вопрос "' + text_ + f'" уже есть ответ:\n<b>{question.answer.text}</b>\nОставить его?',
-                reply_markup=kb.check_kb,
+            if not step:
+                message = await message.answer(
+                    text = f"Вопрос {step+1}/{len(EPITAPH_QUESTIONS)}\n" + 'На вопрос "' + text_ + f'" уже есть ответ:\n<b>{question.answer.text}</b>\nОставить его?',
+                    reply_markup=kb.check_kb,
+                )
+            else:
+                message = await bot.edit_message_text(
+                    chat_id=data['chat_id'],
+                    message_id=data['msg_id'],
+                    text = f"Вопрос {step+1}/{len(EPITAPH_QUESTIONS)}\n" + 'На вопрос "' + text_ + f'" уже есть ответ:\n<b>{question.answer.text}</b>\nОставить его?',
+                    reply_markup=kb.check_kb,
+                )
+            
+            await state.update_data(
+                answers=answers, 
+                allow_msg=False,
+                chat_id=message.chat.id,
+                msg_id=message.message_id
             )
-        else:
-            await state.update_data(allow_msg=True)
+        else: # Нет данных для ответа на вопрос
             text_ = question.text
-            return await msg.answer(
-                text = f"Вопрос {step+1}/{len(EPITAPH_QUESTIONS)}\n" + text_,
-                reply_markup=kb.necessary_q,
+            if not step:
+                message = await message.answer(
+                    text = f"Вопрос {step+1}/{len(EPITAPH_QUESTIONS)}\n" + 'На вопрос "' + text_ + f'" уже есть ответ:\n<b>{question.answer.text}</b>\nОставить его?',
+                    reply_markup=kb.check_kb,
+                )
+            else:
+                message = await bot.edit_message_text(
+                    chat_id=data['chat_id'],
+                    message_id=data['msg_id'],
+                    text = f"Вопрос {step+1}/{len(EPITAPH_QUESTIONS)}\n" + text_,
+                    reply_markup=kb.necessary_q,
+                )
+            await state.update_data(
+                allow_msg=True,
+                chat_id=message.chat.id,
+                msg_id=message.message_id
             )
-
-        # if step < 3:
-        #     return await msg.answer(
-        #         text = text_,
-        #         reply_markup=kb.necessary_q,
-        #     )
-        # else:         
-        #     return await msg.answer(
-        #         text = text_,
-        #         reply_markup=kb.unnecessary_q,
-        #     )
-
 
 
     @on.message(F.text)
@@ -176,8 +199,9 @@ class EpitaphUpdateScene(Scene, state="update"):
             step = data["step"]
             answers = data.get("answers", {})
             answers[step] = msg.text
-            print(data)
+            # print(data)
             await state.update_data(answers=answers)
+            await msg.delete()
             await self.wizard.retake(step=step + 1)
 
 

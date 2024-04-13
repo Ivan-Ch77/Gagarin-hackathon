@@ -16,7 +16,7 @@ class Text():
 
     @property
     def edit(self):
-        text = 'Выберите карточку'
+        text = 'Выберите карточку, которую хотите изменить'
         return text
     
     @property

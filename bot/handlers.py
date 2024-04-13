@@ -7,6 +7,10 @@ from aiogram.types import (
     CallbackQuery,
     ReplyKeyboardMarkup,
     ReplyKeyboardRemove,
+    InlineKeyboardButton, 
+    InlineKeyboardMarkup, 
+
+
 )
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -39,11 +43,24 @@ async def start_command(msg: Message, scenes: ScenesManager):
     #     await msg.answer(text.new_start)
     await msg.answer(text.start, reply_markup=kb.menu)
 
+@router.callback_query(F.data == "menu")
+async def start_command(clbck: CallbackQuery, scenes: ScenesManager):
+    await clbck.message.edit_text(text.start, reply_markup=kb.menu)
+
 @router.callback_query(F.data == "edit_card")
 async def edit_card(clbck: CallbackQuery):
-    await clbck.message.answer(
+    await clbck.message.edit_text(
         text="Выберите данные для обновления",
         reply_markup=kb.edit_data
+    )
+
+@router.callback_query(F.data == "create_card")
+async def edit_card(clbck: CallbackQuery):
+    await clbck.message.edit_text(
+        text="Создание карточек доступно только для платных пользователей",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="Назад", callback_data="menu")
+        ]])
     )
 
 
