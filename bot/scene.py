@@ -82,8 +82,7 @@ class QuizScene(Scene, state="quiz"):
 
     @on.callback_query(F.data == "cancel")
     async def cancel(self, clbck: CallbackQuery, state: FSMContext) -> None:
-        print("skdnvkdfnvkndk;fvnkdfv")
-        await clbck.answer("Отмена заполнения")
+        await clbck.message.answer(text="Отмена заполнения")
         return await self.wizard.exit()
 
     @on.callback_query(F.data == "ask_submit")
@@ -96,15 +95,14 @@ class QuizScene(Scene, state="quiz"):
         f"<b>{FIELDS[0].text}</b> {answers[0]}\n"+\
         f"<b>{FIELDS[1].text}</b> {answers[1]}\n"+\
         f"<b>{FIELDS[2].text}</b> {answers[2]}"
-        await clbck.answer(text)
+        await clbck.message.answer(text=text)
         await self.wizard.exit()
 
     @on.callback_query.exit()
     @on.message.exit()
     async def exit(self, msg: Message | CallbackQuery, state: FSMContext) -> None:            
         await state.set_data({})
-            
 
 quiz_router = Router(name=__name__)
-quiz_router.callback_query.register(QuizScene.as_handler(), NameCallback.filter(F.tag == ("create_card", "back", "cancel", "ask_submit")))
+quiz_router.callback_query.register(QuizScene.as_handler(), NameCallback.filter(F.data == ("create_card", "back", "cancel", "ask_submit")))
 quiz_router.message.register(QuizScene.as_handler(), Command("test"))
