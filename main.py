@@ -15,16 +15,29 @@ from bot.scene import QuizScene, quiz_router
 load_dotenv()
 API_KEY = os.getenv('API_KEY_TG')
 
+def create_dispatcher():
+
+    dispatcher = Dispatcher(
+        storage=MemoryStorage(),
+        events_isolation=SimpleEventIsolation(),
+    )
+
+    #Включаем в диспетчер все роутеры
+    dispatcher.include_router(quiz_router)
+    # dispatcher.include_router(about)
+    dispatcher.include_router(router)
+
+    scene_registry = SceneRegistry(dispatcher)
+    scene_registry.add(QuizScene)
+
+    return dispatcher
 
 async def main():
     bot = Bot(API_KEY, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-    dp = Dispatcher(storage=MemoryStorage(),events_isolation=SimpleEventIsolation(),)
-    dp.include_router(router)
-    dp.include_router(quiz_router)
-    scene_registry = SceneRegistry(dp)
-    scene_registry.add(QuizScene)
+    dp = create_dispatcher()
 
-    await bot.delete_webhook(drop_pending_updates=True)
+    #drop_pending_updates поменял на None, потому что иначе на команду /start бот не отзывается с первого раза
+    await bot.delete_webhook(drop_pending_updates=None) 
     await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
 
 

@@ -11,6 +11,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.scene import Scene, SceneRegistry, ScenesManager, on
 
 from aiogram.types import KeyboardButton, Message, ReplyKeyboardRemove, CallbackQuery
+
 from aiogram.utils.formatting import (
     Bold,
     as_key_value,
@@ -32,7 +33,6 @@ from bot.callback import NameCallback
 class Question:
 
     text: str
-
 
 QUESTIONS = [
     Question(
@@ -70,41 +70,26 @@ QUESTIONS = [
     )
 ]
 
-
 class QuizScene(Scene, state="quiz"):
 
     @on.callback_query.enter()
     @on.message.enter()
     async def on_enter(self, msg: CallbackQuery | Message, state: FSMContext, step: int | None = 0) -> Any:
+
         if not step:
-            
-            # access_token = await mc.get_access_token(MEMORYCODE_EMAIL, MEMORYCODE_PASSWORD)
-            # select_id = NameCallback.id
-            # print(select_id)
-            # if access_token:
-            #     pages_info = await mc.get_all_memory_pages(access_token)
-            #     page_info = ''
-            #     for page in pages_info:
-            #         if str(page['id']) == select_id:
-            #             page_info = page
-            #             break
-            #     print(json.dumps(page_info, indent=2, ensure_ascii=False))
-            # else:
-            #     return await self.wizard.exit()
-            msg = msg.message
-            await msg.answer("Давайте напишем биографию вместе, начнем с эпитафии ответьте на пару вопросов")    
-        
+            msg.answer("HALLLOU")
         try:
             quiz = QUESTIONS[step]
         except IndexError:
             return await self.wizard.exit()
+        
+        if step > 0:
         
         await state.update_data(step=step)
         return await msg.answer(
             text=QUESTIONS[step].text
         )
 
-    
     @on.message(F.text)
     async def answer(self, msg: Message, state: FSMContext) -> None:
         data = await state.get_data()
@@ -117,7 +102,23 @@ class QuizScene(Scene, state="quiz"):
         print(data)
         
         await self.wizard.retake(step=step + 1)
-        
-    
+
+    @on.message(F.text == "Готово")
+    async def end(self, msg: Message, state: FSMContext) -> None:
+        pass
+
+    @on.message(F.text == "Назад")
+    async def back(self, msg: Message, state: FSMContext) -> None:
+        pass
+
+    @on.message(F.text == "Отменить")
+    async def end_wo_save(self, msg: Message, state: FSMContext) -> None:
+        pass
+
+    @on.message.exit()
+    async def answer(self, msg: Message, state: FSMContext) -> None:
+        pass
+
 quiz_router = Router(name=__name__)
-quiz_router.callback_query.register(QuizScene.as_handler(), NameCallback.filter(F.tag == "page_choose"))
+quiz_router.message.register(QuizScene.as_handler(), Command("test"))
+# quiz_router.callback_query.register(QuizScene.as_handler(), NameCallback.filter(F.tag == "create_card"))

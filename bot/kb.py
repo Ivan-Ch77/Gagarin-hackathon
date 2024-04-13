@@ -4,15 +4,19 @@ from bot.callback import *
 
 # начальное меню бота
 menu = [
-    [
-        InlineKeyboardButton(text="Создание", callback_data="create"),
-        InlineKeyboardButton(text="Помощь", callback_data="support"),
+    [ 
+        InlineKeyboardButton(text="Новая карточка", callback_data="create_card"),
     ],
+    [
+        InlineKeyboardButton(text="Редактировать карточку", callback_data="edit_card"),
+    ]
 ]
 menu = InlineKeyboardMarkup(inline_keyboard=menu)
 
-# клавиатура для пропуска вопроса
-skip_question = [
+
+
+# клавиатура необязательных вопросов
+unnecessary_q = [
     [
         InlineKeyboardButton(text="Пропустить", callback_data="skip"),
         InlineKeyboardButton(text="Закончить", callback_data="cancel"),
