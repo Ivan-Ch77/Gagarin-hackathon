@@ -2,6 +2,16 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardBu
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from bot.callback import *
 
+
+# кнопки ДА и НЕТ
+check_kb = [
+    [ 
+        InlineKeyboardButton(text="Да", callback_data="yes"),
+        InlineKeyboardButton(text="Нет", callback_data="no"),
+    ]
+]
+check_kb = InlineKeyboardMarkup(inline_keyboard=check_kb)
+
 # начальное меню бота
 menu = [
     [ 
