@@ -1,19 +1,35 @@
 from dataclasses import dataclass
 
 @dataclass
-class Question:
+class Answer:
 
+    key: str | list[str]
+    text: str = ""
+    avaliable: bool = False
+
+
+@dataclass
+class Question:
     text: str
+    answer: Answer = ''
+
+
 
 QUESTIONS = [
     Question(
-        text="Как его звали? <b>(Обязательно)</b>"
+        text = "Как его звали?",
+        answer = Answer(
+            key = "name"
+        )
     ),
     Question(
-        text="Когда родился? <b>(Обязательно)</b>"
-    ),
-    Question(
-        text="Сколько лет ему было, когда он ушел от нас? <b>(Обязательно)</b>"
+        text = "Сколько лет ему было, когда он ушел от нас?",
+        answer = Answer(
+            key = [
+                "birthday_at", 
+                "died_at"
+            ]
+        )
     ),
     Question(
         text="В какой стране и городе он родился?"

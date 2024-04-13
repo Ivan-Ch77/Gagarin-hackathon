@@ -10,7 +10,13 @@ from aiogram.client.bot import DefaultBotProperties
 from aiogram.fsm.scene import Scene, SceneRegistry
 
 from bot.handlers import router
-from bot.scene import QuizScene, AboutScene, quiz_router, about_router
+from bot.scene import (
+    UpdateScene, 
+    AboutScene,
+    update_router, 
+    about_router
+)
+
 
 load_dotenv()
 API_KEY = os.getenv('API_KEY_TG')
@@ -23,13 +29,13 @@ def create_dispatcher():
     )
 
     #Включаем в диспетчер все роутеры
-    dispatcher.include_router(quiz_router)
+    dispatcher.include_router(update_router)
     dispatcher.include_router(about_router)
     dispatcher.include_router(router)
 
     scene_registry = SceneRegistry(dispatcher)
 
-    scene_registry.add(QuizScene)
+    scene_registry.add(UpdateScene)
     scene_registry.add(AboutScene)
 
 

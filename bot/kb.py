@@ -44,10 +44,12 @@ choise_answer = InlineKeyboardMarkup(inline_keyboard=choise_answer)
 
 
 
-def country_kb(name_ids:dict):
+def page_kb(name_ids:dict):
     builder = InlineKeyboardBuilder()
 
     for id, name in name_ids.items():
+        if not name:
+            name='Нет имени'
         builder.button(
             text=name,
             callback_data=NameCallback(

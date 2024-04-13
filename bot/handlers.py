@@ -55,7 +55,7 @@ async def edit_card(clbck: CallbackQuery):
                 name_ids[id]=name
             await clbck.message.edit_text(
                 text=text_,
-                reply_markup=kb.country_kb(name_ids)
+                reply_markup=kb.page_kb(name_ids)
             )
         else:
             await clbck.answer(
