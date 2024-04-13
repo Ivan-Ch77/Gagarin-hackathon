@@ -7,6 +7,10 @@ from aiogram.types import (
     CallbackQuery,
     ReplyKeyboardMarkup,
     ReplyKeyboardRemove,
+    InlineKeyboardButton, 
+    InlineKeyboardMarkup, 
+
+
 )
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -39,17 +43,27 @@ async def start_command(msg: Message, scenes: ScenesManager):
     #     await msg.answer(text.new_start)
     await msg.answer(text.start, reply_markup=kb.menu)
 
+@router.callback_query(F.data == "menu")
+async def start_command(clbck: CallbackQuery, scenes: ScenesManager):
+    await clbck.message.edit_text(text.start, reply_markup=kb.menu)
+
 @router.callback_query(F.data == "edit_card")
 async def edit_card(clbck: CallbackQuery):
-    await clbck.message.answer(
+    await clbck.message.edit_text(
         text="Выберите данные для обновления",
         reply_markup=kb.edit_data
     )
 
+@router.callback_query(F.data == "create_card")
+async def edit_card(clbck: CallbackQuery):
+    await clbck.message.edit_text(
+        text="Создание карточек доступно только для платных пользователей",
+        reply_markup=kb.back_to_menu_kb
+    )
+
 
 #Обработчик кнопки "Редактировать карточку"
-@router.callback_query(F.data == "epitaph")
-@router.callback_query(F.data == "biography")
+@router.callback_query(F.data == "epitaph" or F.data == "biography")
 async def edit_card(clbck: CallbackQuery):
     try:
         api = mc(MEMORYCODE_EMAIL, MEMORYCODE_PASSWORD, MEMORYCODE_BASE_URL)
