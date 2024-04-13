@@ -24,6 +24,18 @@ class MemoryCodeAPI:
         self.memory_pages = None
 
     async def authenticate(self) -> str | dict:
+        """
+        Аутентифицирует пользователя с использованием предоставленных учетных данных.
+
+        Использует email и пароль для получения токена доступа к API MemoryCode.
+
+        Returns:
+            str | dict: Возвращает строку с токеном доступа, если аутентификация прошла успешно.
+                        В случае ошибки возвращает словарь с информацией об ошибке.
+
+        Raises:
+            aiohttp.ClientError: Если запрос не может быть выполнен.
+        """
         url = f"{self.base_url}/api/v1/get-access-token"
         async with aiohttp.ClientSession() as session:
             response = await session.post(url, json={
@@ -42,13 +54,17 @@ class MemoryCodeAPI:
     @require_auth
     async def get_all_memory_pages(self) -> str | dict:
         """
-        Асинхронно извлекает все страницы памяти из системы MemoryCode.
+        Извлекает все страницы памяти, доступные для данного пользователя.
 
-        Args:
-            access_token (str): Токен доступа к API.
+        Предполагается использование действующего токена доступа. В случае ошибки
+        запроса или проблем с аутентификацией возбуждает исключение.
 
         Returns:
-            Optional[dict]: Список всех страниц в формате JSON или None в случае ошибки.
+            dict: Список всех страниц в формате JSON или сообщение об ошибке.
+
+        Raises:
+            AuthenticationError: Если токен доступа не установлен.
+            aiohttp.ClientError: При ошибках сети или сервера.
         """
 
         url = f"{MEMORYCODE_BASE_URL}/api/cabinet/individual-pages"
@@ -83,7 +99,7 @@ class MemoryCodeAPI:
     @require_auth
     async def get_individual_page_by_name(self, name: str) -> str:
         """
-        Асинхронно извлекает страницу памяти по имени.
+        Извлекает страницу памяти по имени.
 
         Args:
             access_token (str): Токен доступа к API.
@@ -104,15 +120,19 @@ class MemoryCodeAPI:
     @require_auth
     async def update_memory_page(self, initial_page_file: str, updated_fields_file: str) -> str:
         """
-        Асинхронно обновляет данные страницы памяти в системе MemoryCode.
+        Обновляет данные конкретной страницы памяти на основе предоставленных данных.
 
         Args:
-            initial_page_file (str): JSON-строка с исходными данными страницы.
-            updated_fields_file (str): JSON-строка с полями для обновления.
-            access_token (str): Токен доступа к API.
+            initial_page_file (str): JSON-строка, содержащая исходные данные страницы.
+            updated_fields_file (str): JSON-строка, содержащая поля для обновления.
 
         Returns:
-            str: Ответ сервера в формате JSON или сообщение об ошибке.
+            str: JSON-строка с обновленными данными страницы или сообщение об ошибке.
+
+        Raises:
+            AuthenticationError: Если токен доступа не установлен.
+            ValueError: Если страница с указанным slug не найдена.
+            aiohttp.ClientError: При сетевых ошибках.
         """
 
         initial_page_data = json.loads(initial_page_file)
@@ -154,7 +174,7 @@ class MemoryCodeAPI:
     @require_auth
     async def link_page(self, page_to_link: dict, current_page: dict) -> bool:
         """
-        Асинхронно связывает страницу с другой страницей в системе MemoryCode.
+        Связывает страницу с другой страницей в системе MemoryCode.
 
         Args:
             access_token (str): Токен доступа к API.
@@ -249,7 +269,7 @@ class MemoryCodeAPI:
     @require_auth
     async def upload_photo(self, file_path: str) -> dict:
         """
-        Асинхронно загружает фотографию на сервер.
+        Загружает фотографию на сервер MemoryCode.
 
         Args:
             file_path (str): Путь к файлу фотографии, который нужно загрузить.
@@ -291,7 +311,7 @@ class MemoryCodeAPI:
     @require_auth
     async def add_comment_to_page(self, page_id: int, comment_data: dict) -> dict:
         """
-        Отправляет POST-запрос на добавление комментария к странице памяти.
+        Отправляет запрос на добавление комментария к странице памяти.
 
         Args:
             page_id (int): ID страницы памяти.
