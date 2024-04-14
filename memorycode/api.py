@@ -134,9 +134,11 @@ class MemoryCodeAPI:
             ValueError: Если страница с указанным slug не найдена.
             aiohttp.ClientError: При сетевых ошибках.
         """
-
-        initial_page_data = json.loads(initial_page_file)
-        updated_fields_data = json.loads(updated_fields_file)
+        try:
+            initial_page_data = json.loads(initial_page_file)
+            updated_fields_data = json.loads(updated_fields_file)
+        except json.JSONDecodeError:
+            return "Ошибка декодирования JSON."
 
         page_exists = any(page.get('slug') == initial_page_data['slug'] for page in self.memory_pages if isinstance(page, dict))
         if not page_exists:
@@ -157,19 +159,24 @@ class MemoryCodeAPI:
             response = await session.put(url, json=initial_page_data, headers=headers)
             if response.status == 200:
                 logger.info("Страница памяти успешно обновлена!")
-                data = await response.json()
-                return json.dumps(data, ensure_ascii=False, indent=2)
+                response_text = await response.text()
+                if response_text:  # Проверяем, не пустой ли ответ
+                    data = json.loads(response_text)
+                    return json.dumps(data, ensure_ascii=False, indent=2)
+                else:
+                    return "Пустой ответ от сервера."
             else:
                 error_message = await response.text()
-                response_data = json.loads(error_message)
-                logger.error(f"Ошибка при обновлении страницы памяти, код ошибки: {response.status}")
-                logger.error(f"Основное сообщение об ошибке: {response_data.get('message', '')}")
-                if 'errors' in response_data:
-                    logger.error("Детали ошибок:")
-                    for field, messages in response_data['errors'].items():
-                        for message in messages:
-                            logger.error(f" - {field}: {message}")
-                return f"Ошибка при обновлении страницы памяти, код ошибки: {response.status}"
+                if error_message:
+                    try:
+                        response_data = json.loads(error_message)
+                        detailed_error_message = response_data.get('message', 'No error message provided')
+                    except json.JSONDecodeError:
+                        detailed_error_message = error_message
+                else:
+                    detailed_error_message = "No error message provided"
+                logger.info(f"Ошибка при обновлении страницы памяти, код ошибки: {response.status}, сообщение: {detailed_error_message}")
+                return f"Ошибка при обновлении страницы памяти, код ошибки: {response.status}, сообщение: {detailed_error_message}"
 
     @require_auth
     async def link_page(self, page_to_link: dict, current_page: dict) -> bool:

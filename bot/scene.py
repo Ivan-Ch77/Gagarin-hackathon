@@ -11,6 +11,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.scene import Scene, SceneRegistry, ScenesManager, on
 
 from aiogram.types import KeyboardButton, Message, ReplyKeyboardRemove, CallbackQuery
+import re
 
 from aiogram.utils.formatting import (
     Bold,
@@ -526,7 +527,7 @@ class BiographUpdateScene(Scene, state="Biograph"):
 
 
     #Обработка кнопки сохранить
-    @on.callback_query(F.data == "save") # Я вообще не ебу куда сохранять нужени дамир
+    @on.callback_query(F.data == "save")
     async def save_ya_answer(self, clbck: CallbackQuery, bot: Bot , state: FSMContext) -> None:
         data = await state.get_data()
         await bot.edit_message_text(
@@ -537,9 +538,60 @@ class BiographUpdateScene(Scene, state="Biograph"):
 
         api = await self.get_api(state, clbck.message.from_user.id)
         if api.access_token:
+            input_text = data['ya_answer']
+            parts = re.split(r'\*\*(.*?)\*\*', input_text)
+            parts = [part.strip() for part in parts if part.strip()]
+            # Разбиение на заголовки и тексты
+            biography_sections = []
+            for i in range(0, len(parts), 2):
+                if i + 1 < len(parts):
+                    title = parts[i]
+                    description = parts[i + 1]
+                    biography_sections.append({'title': title, 'description': description})
+
+            selected_page = data['select_page']
+            if 'filled_fields' not in selected_page:
+                selected_page['filled_fields'] = []
+
+            labels_to_add = {
+                0: "biography_1",
+                1: "biography_2",
+                2: "end_of_biography"
+            }
+            for index in range(len(biography_sections)):
+                label = labels_to_add.get(index)
+                if label and label not in selected_page['filled_fields']:
+                    selected_page['filled_fields'].append(label)
+
+            if 'biographies' not in selected_page:
+                selected_page['biographies'] = []
+                selected_page['filled_fields'].append('biographies')
+
+            # Теперь добавляем или обновляем существующие биографии
+            current_biographies = selected_page['biographies']
+            for index, section in enumerate(biography_sections):
+                if index < len(current_biographies):
+                    # Обновление существующих биографий
+                    current_biographies[index]['title'] = section['title']
+                    current_biographies[index]['description'] = section['description']
+                else:
+                    # Добавление новых биографий
+                    new_biography = {
+                        'id': None,
+                        'title': section['title'],
+                        'description': section['description'],
+                        'page_id': selected_page['id'],
+                        'created_at': None,
+                        'updated_at': None,
+                        'order': index + 1,
+                        'checked': True
+                    }
+                    current_biographies.append(new_biography)
+
             updated_fields = {
                 'name': data['answers'][0],
-                'epitaph': data['ya_answer'] # Должна быть не эпитафия а биография мб
+                'filled_fields': selected_page['filled_fields'],
+                'biographies': current_biographies
             }
             updated_page = await api.update_memory_page(
                 json.dumps(data['select_page']),
