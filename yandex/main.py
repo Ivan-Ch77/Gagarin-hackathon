@@ -23,7 +23,7 @@ async def insert_data_into_questions(data):
 async def yandexGPT(data):
     load_dotenv()
     CATALOG_ID = os.getenv('CATALOG_ID')
-    SECRET_KEY = os.getenv('API_KEY_YA')
+    API_KEY_YA = os.getenv('API_KEY_YA')
 
 
     prompt = {
@@ -41,7 +41,7 @@ async def yandexGPT(data):
             # assistant - имитируем самого бота, который будет отвечать
             {
                 "role": "system",
-                "text": "Составь только одну эпиграфию длиной до 300 символов. Выдели ее символами « »"
+                "text": "Составь только одну эпитафию длиной до 300 символов. Выдели ее символами « »"
                         # "Используй эти символы «» ТОЛЬКО для того, чтобы выделять текст эпитафии."
             },
             {
@@ -73,7 +73,7 @@ async def yandexGPT(data):
     url = "https://llm.api.cloud.yandex.net/foundationModels/v1/completion"
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Api-Key {SECRET_KEY}"
+        "Authorization": f"Api-Key {API_KEY_YA}"
     }
 
     # response = requests.post(url, headers=headers, json=prompt)
@@ -82,41 +82,34 @@ async def yandexGPT(data):
     result = await post_request(url, headers, prompt)
     # TODO: на данный момент не выходит грамотно разделить ответ на 3 эпитафии/биографии
     lines = result.strip().split('\n')
-    epigraphies = []
+    epitaphies = []
     for line in lines:
         json_obj = json.loads(line)
         if 'result' in json_obj and 'alternatives' in json_obj['result']:
             for alt in json_obj['result']['alternatives']:
                 if 'message' in alt and 'text' in alt['message'] and alt['status'] == 'ALTERNATIVE_STATUS_FINAL':
                     text = alt['message']['text']
-                    print(text)
-                    print('---------------------------------')
-                    positions1 = [match.start() for match in re.finditer('«', text)]
-                    positions2 = [match.start() for match in re.finditer('»', text)]
-                    print(positions1, positions2)
-                    for pos in range(len(positions1)):
-                        epigraphies.append(text[positions1[pos-1]:positions2[pos]])
+                    epitaphies.append(text)
+    return epitaphies
 
-    return epigraphies
-
-if __name__ == "__main__":
-    # data = [
-    #     "Ответ на первый вопрос", "Ответ на второй вопрос", "Россия, Москва","Он был сварщиком",
-    #     "Он любил читать книги и рисовать", "Да, он был религиозным человеком", "Особенным его хобби было рисовать утренний рассвет",
-    #     "Нет", "Да", "Он был добрым, но строгим", "Нет."
-    # ]
-    data = [
-        'Андрей Антоныч', '65', 'Россия, Москва', 'Он был инженером', 'Он любил петь', 'Нет', 'Да',
-        'Он был очень целеустремленным', 'Да', 'Он был скромным', 'нет'
-    ]
-    # asyncio.run(yandexGPT(data))
-    result1 = asyncio.run(yandexGPT(data))
-    print('\n\n')
-    # for i in range(len(result1)):
-    #     print(result1[i], '\n\n')
-    ss = 'Здесь лежит Андрей Антоныч. Инженер, певец и просто замечательный человек. Жил с 1957 по 2033 год. Прожил долгую и насыщенную жизнь. Навеки в наших сердцах'
-    sum=0
-    for i in range(len(ss)):
-        sum +=1
-    print(sum)
+# if __name__ == "__main__":
+#     # data = [
+#     #     "Ответ на первый вопрос", "Ответ на второй вопрос", "Россия, Москва","Он был сварщиком",
+#     #     "Он любил читать книги и рисовать", "Да, он был религиозным человеком", "Особенным его хобби было рисовать утренний рассвет",
+#     #     "Нет", "Да", "Он был добрым, но строгим", "Нет."
+#     # ]
+#     data = [
+#         'Андрей Антоныч', '65', 'Россия, Москва', 'Он был инженером', 'Он любил петь', 'Нет', 'Да',
+#         'Он был очень целеустремленным', 'Да', 'Он был скромным', 'нет'
+#     ]
+#     # asyncio.run(yandexGPT(data))
+#     result1 = asyncio.run(yandexGPT(data))
+#     print('\n\n')
+#     # for i in range(len(result1)):
+#     #     print(result1[i], '\n\n')
+#     ss = 'Здесь лежит Андрей Антоныч. Инженер, певец и просто замечательный человек. Жил с 1957 по 2033 год. Прожил долгую и насыщенную жизнь. Навеки в наших сердцах'
+#     sum=0
+#     for i in range(len(ss)):
+#         sum +=1
+#     print(sum)
 

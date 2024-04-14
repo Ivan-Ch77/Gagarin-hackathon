@@ -72,7 +72,8 @@ class EpitaphUpdateScene(Scene, state="update"):
         first_data = await state.get_data()
         if type(msg) == CallbackQuery:
             message = msg.message
-        if not step and not first_data: # На самом первом шаге обрабатывается CallbackQuery на остальных Message
+        # На самом первом шаге обрабатывается CallbackQuery на остальных Message
+        if not step and not first_data:
             clbck_data_id = NameCallback.unpack(msg.data).id
             api = await self.get_api(state, msg.from_user.id)
             if api.access_token:
@@ -90,7 +91,8 @@ class EpitaphUpdateScene(Scene, state="update"):
                         page_msg_id=page_msg.message_id
                     )
 
-        try: # Остановка сцены когда заканчиваются вопросы
+        # Остановка сцены когда заканчиваются вопросы
+        try:
             question = EPITAPH_QUESTIONS[step]
         except IndexError:
 
@@ -118,7 +120,7 @@ class EpitaphUpdateScene(Scene, state="update"):
             )
             return
 
-        # Пропуск вопросов на которые уже есть ответы
+        # Пропуск вопросов на которые уже есть ответы (ВОПРОСЫ!!!)
         data = await state.update_data(step=step)
 
         # data = await state.get_data()
@@ -145,25 +147,36 @@ class EpitaphUpdateScene(Scene, state="update"):
                     year_life = (deathday - birthday).days // 365
                     question.answer.text = str(year_life)
 
+        # Проверка на наличие ключа типа str в EPITAPH_QUESTIONS
         elif type(key) == str:
 
+            # Проверка есть ли key в EPITAPH_QUESTIONS
             if page[key]:
                 question.answer.text = page[key]
+            # Если нет
             else:
                 tmp_availiable = False
 
         # print(data)
-        if tmp_availiable: # Есть данные для ответа на вопрос
+        # В EPITAPH_QUESTIONS key не существует
+        if tmp_availiable:
             text_ = question.text
+            print('ВЗЯТО ИЗ MC', text_)
             answers = data.get("answers", {})
             answers[step] = question.answer.text
 
+            # Проверяем чтобы step == 0 and first_data is empty
             if not step and not first_data:
+                # print('step', step)
+                # print('first_data', first_data)
                 message = await message.answer(
                     text = f"Вопрос {step+1}/{len(EPITAPH_QUESTIONS)}\n" + 'Для вопроса "' + text_ + f'" уже есть ответ:\n<b>{question.answer.text}</b>\nОставить его?',
                     reply_markup=kb.check_ready_answer_kb,
                 )
+            # Во всех случаях, когда step != 0 and first_data not empty
             else:
+                print('step', step)
+                print('first_data', first_data)
                 message = await bot.edit_message_text(
                     chat_id=data['chat_id'],
                     message_id=data['msg_id'],
@@ -177,7 +190,8 @@ class EpitaphUpdateScene(Scene, state="update"):
                 chat_id=message.chat.id,
                 msg_id=message.message_id
             )
-        else: # Нет данных для ответа на вопрос
+        # Значение key в EPITAPH_QUESTIONS не существует
+        else: # Нет данных для ответа на вопрос из MemoryCode
             text_ = question.text
             if not step and not first_data:
                 message = await message.answer(
@@ -248,6 +262,7 @@ class EpitaphUpdateScene(Scene, state="update"):
     @on.callback_query(F.data == "save")
     async def save_ya_answer(self, clbck: CallbackQuery, bot: Bot , state: FSMContext) -> None:
         data = await state.get_data()
+        print(data)
         await bot.edit_message_text(
             chat_id=data['chat_id'],
             message_id=data['msg_id'],
@@ -277,7 +292,7 @@ class EpitaphUpdateScene(Scene, state="update"):
     async def stay_answer(self, clbck: CallbackQuery, state: FSMContext) -> None:
         data = await state.get_data()
         step = data['step']
-        await self.wizard.retake(step=step + 1)
+        await self.wizard.retake(step=step + 1)  # Переход на on_enter()
 
     @on.callback_query(F.data == "no")
     async def edit_answer(self, clbck: CallbackQuery, state: FSMContext) -> None:
@@ -304,6 +319,12 @@ class EpitaphUpdateScene(Scene, state="update"):
         )
         await state.clear()
         return await self.wizard.exit()
+
+
+
+
+
+
 
 
     #Обработка сабмита
