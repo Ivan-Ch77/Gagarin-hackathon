@@ -29,7 +29,7 @@ from aiogram.filters.callback_data import CallbackData
 import bot.kb as kb
 from bot.callback import NameCallback
 from bot.questions import (
-    BIOGRAPH_QUESTIONS, 
+    BIOGRAPH_QUESTIONS,
     EPITAPH_QUESTIONS
 )
 from bot.text import Text
@@ -54,8 +54,8 @@ class EpitaphUpdateScene(Scene, state="Epitaph"):
     @on.callback_query.enter()
     @on.message.enter()
     async def on_enter(
-        self, 
-        msg: CallbackQuery | Message, 
+        self,
+        msg: CallbackQuery | Message,
         bot: Bot,
         state: FSMContext,
         step: int | None = 0
@@ -64,7 +64,8 @@ class EpitaphUpdateScene(Scene, state="Epitaph"):
         first_data = await state.get_data()
         if type(msg) == CallbackQuery:
             message = msg.message
-        if not step and not first_data: # На самом первом шаге обрабатывается CallbackQuery на остальных Message
+        # На самом первом шаге обрабатывается CallbackQuery на остальных Message
+        if not step and not first_data:
             clbck_data_id = NameCallback.unpack(msg.data).id
             api = await self.get_api(state, msg.from_user.id)
             if api.access_token:
@@ -82,10 +83,11 @@ class EpitaphUpdateScene(Scene, state="Epitaph"):
                         page_msg_id=page_msg.message_id
                     )
 
-        try: # Остановка сцены когда заканчиваются вопросы
+        # Остановка сцены когда заканчиваются вопросы
+        try:
             question = EPITAPH_QUESTIONS[step]
         except IndexError:
-            
+
             data = await state.get_data()
             await bot.edit_message_text(
                 chat_id=data['chat_id'],
@@ -95,7 +97,7 @@ class EpitaphUpdateScene(Scene, state="Epitaph"):
             select_page = data['select_page']
             answers = data['answers']
             user_answers = [value for value in answers.values()]
-            ya_answer = await yandexGPT(user_answers)
+            ya_answer = await yandexGPT(user_answers, epitaph=True)
             if type(ya_answer) == list:
                 ya_answer = ya_answer[0]
             await bot.edit_message_text(
@@ -110,15 +112,15 @@ class EpitaphUpdateScene(Scene, state="Epitaph"):
             )
             return
 
-        # Пропуск вопросов на которые уже есть ответы
+        # Пропуск вопросов на которые уже есть ответы (ВОПРОСЫ!!!)
         data = await state.update_data(step=step)
-        
+
         # data = await state.get_data()
         page = data['select_page']
         if question.answer:
             key = question.answer.key
             tmp_availiable = True
-        else: 
+        else:
             key = None
             tmp_availiable = False
 
@@ -136,7 +138,8 @@ class EpitaphUpdateScene(Scene, state="Epitaph"):
                     deathday = datetime.strptime(page[key[death_i]], "%Y-%m-%d %H:%M:%S")
                     year_life = (deathday - birthday).days // 365
                     question.answer.text = str(year_life)
-                
+
+        # Проверка на наличие ключа типа str в EPITAPH_QUESTIONS
         elif type(key) == str:
             try:
                 if page[key] and data['answers'][step]:
@@ -148,16 +151,19 @@ class EpitaphUpdateScene(Scene, state="Epitaph"):
                     tmp_availiable = False
 
         # print(data)
-        if tmp_availiable: # Есть данные для ответа на вопрос
-            text_ = question.text            
+        # В EPITAPH_QUESTIONS key не существует
+        if tmp_availiable:
+            text_ = question.text
             answers = data.get("answers", {})
             answers[step] = question.answer.text
-            
+
+            # Проверяем чтобы step == 0 and first_data is empty
             if not step and not first_data:
                 message = await message.answer(
                     text = f"Вопрос {step+1}/{len(EPITAPH_QUESTIONS)}\n" + 'Для вопроса "' + text_ + f'" уже есть ответ:\n<b>{question.answer.text}</b>\nОставить его?',
                     reply_markup=kb.check_ready_answer_kb,
                 )
+            # Во всех случаях, когда step != 0 and first_data not empty
             else:
                 message = await bot.edit_message_text(
                     chat_id=data['chat_id'],
@@ -165,14 +171,15 @@ class EpitaphUpdateScene(Scene, state="Epitaph"):
                     text = f"Вопрос {step+1}/{len(EPITAPH_QUESTIONS)}\n" + 'Для вопроса "' + text_ + f'" уже есть ответ:\n<b>{question.answer.text}</b>\nОставить его?',
                     reply_markup=kb.check_ready_answer_kb,
                 )
-            
+
             data = await state.update_data(
-                answers=answers, 
+                answers=answers,
                 allow_msg=False,
                 chat_id=message.chat.id,
                 msg_id=message.message_id
             )
-        else: # Нет данных для ответа на вопрос
+        # Значение key в EPITAPH_QUESTIONS не существует
+        else: # Нет данных для ответа на вопрос из MemoryCode
             text_ = question.text
             if not step and not first_data:
                 message = await message.answer(
@@ -274,7 +281,7 @@ class EpitaphUpdateScene(Scene, state="Epitaph"):
     async def stay_answer(self, clbck: CallbackQuery, state: FSMContext) -> None:
         data = await state.get_data()
         step = data['step']
-        await self.wizard.retake(step=step + 1)
+        await self.wizard.retake(step=step + 1)  # Переход на on_enter()
 
     @on.callback_query(F.data == "no")
     async def edit_answer(self, clbck: CallbackQuery, state: FSMContext) -> None:
@@ -333,15 +340,14 @@ class BiographUpdateScene(Scene, state="Biograph"):
     @on.callback_query.enter()
     @on.message.enter()
     async def biography_on_enter(
-        self, 
-        msg: CallbackQuery | Message, 
+        self,
+        msg: CallbackQuery | Message,
         bot: Bot,
         state: FSMContext,
         step: int | None = 0
     ) -> Any:
 
         first_data = await state.get_data()
-        print(first_data)
         if type(msg) == CallbackQuery:
             message = msg.message
         if not step and not first_data: # На самом первом шаге обрабатывается CallbackQuery на остальных Message
@@ -365,7 +371,7 @@ class BiographUpdateScene(Scene, state="Biograph"):
         try: # Остановка сцены когда заканчиваются вопросы
             question = BIOGRAPH_QUESTIONS[step]
         except IndexError:
-            
+
             data = await state.get_data()
             await bot.edit_message_text(
                 chat_id=data['chat_id'],
@@ -375,7 +381,7 @@ class BiographUpdateScene(Scene, state="Biograph"):
             select_page = data['select_page']
             answers = data['answers']
             user_answers = [value for value in answers.values()]
-            ya_answer = await yandexGPT(user_answers) # Функция для написания биографии
+            ya_answer = await yandexGPT(user_answers, biography=True) # Функция для написания биографии
             if type(ya_answer) == list:
                 ya_answer = ya_answer[0]
             await bot.edit_message_text(
@@ -392,13 +398,13 @@ class BiographUpdateScene(Scene, state="Biograph"):
 
         # Пропуск вопросов на которые уже есть ответы
         data = await state.update_data(step=step)
-        
+
         # data = await state.get_data()
         page = data['select_page']
         if question.answer:
             key = question.answer.key
             tmp_availiable = True
-        else: 
+        else:
             key = None
             tmp_availiable = False
 
@@ -416,7 +422,7 @@ class BiographUpdateScene(Scene, state="Biograph"):
                     deathday = datetime.strptime(page[key[death_i]], "%Y-%m-%d %H:%M:%S")
                     year_life = (deathday - birthday).days // 365
                     question.answer.text = str(year_life)
-                
+
         elif type(key) == str:
             try:
                 if page[key] and data['answers'][step]:
@@ -429,10 +435,10 @@ class BiographUpdateScene(Scene, state="Biograph"):
 
         # print(data)
         if tmp_availiable: # Есть данные для ответа на вопрос
-            text_ = question.text            
+            text_ = question.text
             answers = data.get("answers", {})
             answers[step] = question.answer.text
-            
+
             if not step and not first_data:
                 message = await message.answer(
                     text = f"Вопрос {step+1}/{len(BIOGRAPH_QUESTIONS)}\n" + 'Для вопроса "' + text_ + f'" уже есть ответ:\n<b>{question.answer.text}</b>\nОставить его?',
@@ -445,9 +451,9 @@ class BiographUpdateScene(Scene, state="Biograph"):
                     text = f"Вопрос {step+1}/{len(BIOGRAPH_QUESTIONS)}\n" + 'Для вопроса "' + text_ + f'" уже есть ответ:\n<b>{question.answer.text}</b>\nОставить его?',
                     reply_markup=kb.check_ready_answer_kb,
                 )
-            
+
             data = await state.update_data(
-                answers=answers, 
+                answers=answers,
                 allow_msg=False,
                 chat_id=message.chat.id,
                 msg_id=message.message_id
@@ -479,7 +485,7 @@ class BiographUpdateScene(Scene, state="Biograph"):
         allow_msg = data['allow_msg']
         if allow_msg:
             step = data["step"]
-            
+
             answers = data.get("answers", {})
             answers[step] = msg.text
             await state.update_data(answers=answers)
@@ -517,8 +523,8 @@ class BiographUpdateScene(Scene, state="Biograph"):
         data = await state.get_data()
         step = data['step']
         await self.wizard.retake(step=step + 1)
-    
-    
+
+
     #Обработка кнопки сохранить
     @on.callback_query(F.data == "save") # Я вообще не ебу куда сохранять нужени дамир
     async def save_ya_answer(self, clbck: CallbackQuery, bot: Bot , state: FSMContext) -> None:
@@ -533,10 +539,10 @@ class BiographUpdateScene(Scene, state="Biograph"):
         if api.access_token:
             updated_fields = {
                 'name': data['answers'][0],
-                'epitaph': data['ya_answer'] # Должна быть не эпитафия а биография мб 
+                'epitaph': data['ya_answer'] # Должна быть не эпитафия а биография мб
             }
             updated_page = await api.update_memory_page(
-                json.dumps(data['select_page']), 
+                json.dumps(data['select_page']),
                 json.dumps(updated_fields)
             )
             await bot.delete_message(chat_id=data['page_chat_id'], message_id=data['page_msg_id'])
@@ -548,7 +554,7 @@ class BiographUpdateScene(Scene, state="Biograph"):
                 )
         await state.clear()
         await self.wizard.exit()
-    
+
 
     # Выбор существующего ответа
     @on.callback_query(F.data == "yes")
@@ -587,7 +593,7 @@ class BiographUpdateScene(Scene, state="Biograph"):
     #Обработка выхода
     @on.callback_query.exit()
     @on.message.exit()
-    async def exit(self, msg: Message | CallbackQuery, state: FSMContext) -> None:            
+    async def exit(self, msg: Message | CallbackQuery, state: FSMContext) -> None:
         await state.set_data({})
 
 about_router = Router(name=__name__)
