@@ -97,7 +97,7 @@ class EpitaphUpdateScene(Scene, state="Epitaph"):
             select_page = data['select_page']
             answers = data['answers']
             user_answers = [value for value in answers.values()]
-            ya_answer = await yandexGPT(user_answers)
+            ya_answer = await yandexGPT(user_answers, epitaph=True)
             if type(ya_answer) == list:
                 ya_answer = ya_answer[0]
             await bot.edit_message_text(
@@ -154,7 +154,6 @@ class EpitaphUpdateScene(Scene, state="Epitaph"):
         # В EPITAPH_QUESTIONS key не существует
         if tmp_availiable:
             text_ = question.text
-            print('ВЗЯТО ИЗ MC', text_)
             answers = data.get("answers", {})
             answers[step] = question.answer.text
 
@@ -349,7 +348,6 @@ class BiographUpdateScene(Scene, state="Biograph"):
     ) -> Any:
 
         first_data = await state.get_data()
-        print(first_data)
         if type(msg) == CallbackQuery:
             message = msg.message
         if not step and not first_data: # На самом первом шаге обрабатывается CallbackQuery на остальных Message
@@ -383,7 +381,7 @@ class BiographUpdateScene(Scene, state="Biograph"):
             select_page = data['select_page']
             answers = data['answers']
             user_answers = [value for value in answers.values()]
-            ya_answer = await yandexGPT(user_answers) # Функция для написания биографии
+            ya_answer = await yandexGPT(user_answers, biography=True) # Функция для написания биографии
             if type(ya_answer) == list:
                 ya_answer = ya_answer[0]
             await bot.edit_message_text(

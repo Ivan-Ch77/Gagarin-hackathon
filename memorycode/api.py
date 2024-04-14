@@ -366,7 +366,6 @@ async def main():
     if access_token:
         # Получение информации о всех страницах
         pages_info = await api.get_all_memory_pages()
-        print(pages_info)
 
         # Получение информации о конкретных страницах
         page_id = 8894
