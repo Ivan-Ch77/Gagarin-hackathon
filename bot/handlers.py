@@ -63,7 +63,8 @@ async def edit_card(clbck: CallbackQuery):
 
 
 #Обработчик кнопки "Редактировать карточку"
-@router.callback_query(F.data == "epitaph" or F.data == "biography")
+@router.callback_query(F.data == "epitaph")
+@router.callback_query(F.data == "biography")
 async def edit_card(clbck: CallbackQuery):
     try:
         api = mc(MEMORYCODE_EMAIL, MEMORYCODE_PASSWORD, MEMORYCODE_BASE_URL)
